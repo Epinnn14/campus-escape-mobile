@@ -16,34 +16,6 @@ bool get _isWideScreenPlatform =>
     defaultTargetPlatform == TargetPlatform.macOS ||
     defaultTargetPlatform == TargetPlatform.linux;
 
-/// PRANK SEMENTARA: foto teman muncul samar di latar semua layar.
-/// Matikan dengan `kPrankBackground = false` (atau hapus blok ini + asetnya).
-const bool kPrankBackground = true;
-
-Widget _withPrankBackground(Widget child) {
-  if (!kPrankBackground) return child;
-  return Stack(
-    fit: StackFit.expand,
-    children: [
-      child,
-      IgnorePointer(
-        child: Opacity(
-          opacity: 0.32,
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: Image.asset(
-              'assets/images/prank_bg.png',
-              fit: BoxFit.fitWidth,
-              width: double.infinity,
-              alignment: Alignment.bottomCenter,
-            ),
-          ),
-        ),
-      ),
-    ],
-  );
-}
-
 class CampusEscapeApp extends ConsumerWidget {
   const CampusEscapeApp({super.key});
 
@@ -76,14 +48,13 @@ class CampusEscapeApp extends ConsumerWidget {
           ),
           child: child,
         );
-        final framed = _withPrankBackground(scaled);
-        if (!wide) return framed;
+        if (!wide) return scaled;
         return ColoredBox(
           color: AppColors.surfaceDim,
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 430),
-              child: framed,
+              child: scaled,
             ),
           ),
         );
