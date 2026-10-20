@@ -1,0 +1,166 @@
+rules_version = '2';
+
+// =====================================================================
+// Campus Escape — Firestore Security Rules
+// Deploy: firebase deploy --only firestore:rules  (lihat docs/FIREBASE_SETUP.md)
+//
+// Prinsip:
+//  1. Peserta login ANONIM dan hanya bisa menulis dokumen miliknya sendiri
+//     (id dokumen = uid). Tidak ada yang bisa mengubah skor orang lain.
+//  2. Skor divalidasi server: tidak boleh turun, tiap kenaikan harus
+//     disertai ruangan baru yang selesai, naik maksimal 500 XP (XP maksimal
+//     satu ruangan) per ruangan baru, dan total skor <= ruangan selesai x 500.
+//     (Tidak ada jeda waktu minimum supaya antrean write offline — misal
+//     dua ruangan selesai saat sinyal hilang — tetap diterima berurutan.)
+//  3. Nama, sekolah, dan createdAt dikunci setelah dibuat.
+//  4. No HP disimpan terpisah di `private/` — hanya pemilik & admin.
+//  5. Admin = akun Email/Password (username sintetis) yang punya dokumen
+//     admins/{uid}. Dokumen admins hanya bisa dibuat dari Console.
+//  6. Kode acara tidak bisa di-list oleh peserta (hanya get per kode),
+//     jadi kode tidak bisa ditebak lewat enumerasi.
+//  7. Skor hanya diterima selama acara masih `active`.
+// =====================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------ helpers
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAnonymous() {
+      return signedIn() && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.firebase.sign_in_provider == 'password'
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function eventActive(code) {
+      return exists(/databases/$(database)/documents/events/$(code))
+        && get(/databases/$(database)/documents/events/$(code)).data.active == true;
+    }
+
+    function str(v, max) {
+      return v is string && v.size() > 0 && v.size() <= max;
+    }
+
+    function intIn(v, lo, hi) {
+      return v is int && v >= lo && v <= hi;
+    }
+
+    // Bentuk dokumen pemain (publik, tanpa no HP).
+    function validPlayer(d, uid, code) {
+      return d.keys().hasOnly([
+          'uid', 'eventCode', 'name', 'school', 'avatarIndex', 'totalScore',
+          'roomsCompleted', 'roomsTotal', 'roomsDone', 'finished', 'roomScores',
+          'startedAt', 'lastPlayedAt', 'updatedAt', 'createdAt'
+        ])
+        && d.uid == uid
+        && d.eventCode == code
+        && str(d.name, 60)
+        && str(d.school, 80)
+        && intIn(d.avatarIndex, 0, 11)
+        && intIn(d.totalScore, 0, 5000)
+        && intIn(d.roomsCompleted, 0, 10)
+        && intIn(d.roomsTotal, 1, 10)
+        && intIn(d.roomsDone, 0, 10)
+        && d.finished is bool
+        && d.roomScores is map && d.roomScores.size() <= 10
+        && str(d.startedAt, 40)
+        && str(d.lastPlayedAt, 40)
+        && d.updatedAt == request.time
+        && d.totalScore <= d.roomsDone * 500;
+    }
+
+    // ------------------------------------------------------------- admins
+    match /admins/{uid} {
+      // Admin hanya boleh membaca dokumennya sendiri (dipakai app untuk
+      // verifikasi setelah login). Tidak ada yang boleh menulis dari app.
+      allow get: if isOwner(uid);
+      allow list, create, update, delete: if false;
+    }
+
+    // ------------------------------------------------------------- events
+    match /events/{code} {
+      // Peserta: boleh GET satu acara kalau tahu kodenya (validasi kode,
+      // pengaturan ruangan, pemenang). Tidak boleh LIST (anti-enumerasi).
+      allow get: if signedIn();
+      allow list: if isAdmin();
+      allow create: if isAdmin()
+        && code.matches('^[A-Z]{3}[0-9]{3}$')
+        && request.resource.data.code == code
+        && str(request.resource.data.name, 60)
+        && request.resource.data.active is bool;
+      allow update: if isAdmin()
+        && request.resource.data.code == code
+        && str(request.resource.data.name, 60)
+        && request.resource.data.active is bool;
+      allow delete: if isAdmin();
+
+      // ---- pemain (publik untuk leaderboard, tanpa no HP) ----
+      match /players/{uid} {
+        allow read: if signedIn();
+
+        // Daftar: dokumen baru milik sendiri, skor 0, acara masih aktif.
+        allow create: if isOwner(uid)
+          && isAnonymous()
+          && eventActive(code)
+          && validPlayer(request.resource.data, uid, code)
+          && request.resource.data.totalScore == 0
+          && request.resource.data.roomsCompleted == 0
+          && request.resource.data.roomsDone == 0
+          && request.resource.data.createdAt == request.time;
+
+        // Update skor: hanya pemilik, acara aktif, anti-cheat.
+        allow update: if isOwner(uid)
+          && isAnonymous()
+          && eventActive(code)
+          && validPlayer(request.resource.data, uid, code)
+          // identitas dikunci
+          && request.resource.data.name == resource.data.name
+          && request.resource.data.school == resource.data.school
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.startedAt == resource.data.startedAt
+          // skor & jumlah ruangan selesai tidak boleh turun
+          && request.resource.data.totalScore >= resource.data.totalScore
+          && request.resource.data.roomsDone >= resource.data.roomsDone
+          // kenaikan skor hanya kalau ada ruangan baru selesai, maks 500/ruangan
+          && (request.resource.data.totalScore == resource.data.totalScore
+              || request.resource.data.roomsDone > resource.data.roomsDone)
+          && request.resource.data.totalScore - resource.data.totalScore
+               <= (request.resource.data.roomsDone - resource.data.roomsDone) * 500;
+
+        allow delete: if isAdmin();
+      }
+
+      // ---- data privat (no HP): pemilik & admin saja ----
+      match /private/{uid} {
+        allow get: if isOwner(uid) || isAdmin();
+        allow list: if isAdmin();
+        allow create: if isOwner(uid)
+          && isAnonymous()
+          && eventActive(code)
+          && request.resource.data.keys().hasOnly(['uid', 'phone', 'updatedAt'])
+          && request.resource.data.uid == uid
+          && request.resource.data.phone is string
+          && request.resource.data.phone.size() <= 20
+          && request.resource.data.updatedAt == request.time;
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
+    }
+
+    // Semua path lain ditolak.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
