@@ -1,4 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -74,15 +78,32 @@ abstract class AdminExportService {
   /// Tulis CSV ke file sementara lalu buka share sheet (simpan ke Files/Drive,
   /// kirim WhatsApp/email, dll). Mengembalikan path file-nya.
   static Future<String> downloadCsv(List<PlayerRecord> players, {required String label}) async {
-    final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/${fileName(label)}');
     // BOM supaya Excel langsung membaca UTF-8 (nama dengan aksen, dll).
-    await file.writeAsString('﻿${csv(players)}', flush: true);
+    final content = '\uFEFF${csv(players)}';
+    final name = fileName(label);
+    final subject = 'Data peserta Campus Escape ($label)';
+    final text = '${players.length} peserta · dibuat ${_stamp(DateTime.now())}';
+    if (kIsWeb) {
+      // Web (GitHub Pages / PWA): tidak ada filesystem → kirim bytes langsung
+      // ke Web Share API (Safari iOS & Chrome Android mendukung berbagi file).
+      final bytes = Uint8List.fromList(utf8.encode(content));
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile.fromData(bytes, mimeType: 'text/csv', name: name)],
+          subject: subject,
+          text: text,
+        ),
+      );
+      return name;
+    }
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/$name');
+    await file.writeAsString(content, flush: true);
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(file.path, mimeType: 'text/csv')],
-        subject: 'Data peserta Campus Escape ($label)',
-        text: '${players.length} peserta · dibuat ${_stamp(DateTime.now())}',
+        subject: subject,
+        text: text,
       ),
     );
     return file.path;

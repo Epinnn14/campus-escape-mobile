@@ -1,0 +1,62 @@
+# Deploy versi web Campus Escape ke GitHub Pages.
+# Setiap push ke `main` → build Flutter web → https://<user>.github.io/<repo>/
+# Sekali saja: Settings → Pages → Source = "GitHub Actions".
+#
+# Firebase (opsional): secret FIREBASE_OPTIONS_DART_B64 (hasil
+# `flutterfire configure --platforms=android,ios,web`) supaya versi web
+# ikut online. Tambahkan juga domain <user>.github.io di Firebase Console →
+# Authentication → Settings → Authorized domains. Tanpa itu: mode lokal.
+
+name: Web (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.7"
+          channel: stable
+          cache: true
+
+      - name: Konfigurasi Firebase (secrets → file, atau placeholder)
+        shell: bash
+        env:
+          OPTS: ${{ secrets.FIREBASE_OPTIONS_DART_B64 }}
+        run: |
+          if [ -n "$OPTS" ]; then echo "$OPTS" | base64 -d > lib/firebase_options.dart;
+          else cp lib/firebase_options.example.dart lib/firebase_options.dart; fi
+
+      - run: flutter pub get
+      - name: Build web
+        run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
