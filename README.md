@@ -18,6 +18,15 @@
 | **Reward** | XP per ruangan, leaderboard, pencapaian, **sertifikat PDF** otomatis dari dalam app |
 | **Konteks** | Proyek departemen SoCS BINUS @Bekasi sekaligus laporan **Internship Enrichment** — Kevin Aprilio, Software Engineering BINUS |
 
+## Unduh & coba
+
+| Platform | File | Cara |
+|---|---|---|
+| **Android** | `CampusEscape-<versi>-android.apk` | Unduh di HP → buka → izinkan install dari sumber tidak dikenal |
+| **Windows** | `CampusEscape-<versi>-windows-x64.zip` | Ekstrak → jalankan `CampusEscape.exe` (SmartScreen: *More info → Run anyway*). Tampil dalam bingkai seukuran HP; video profil tidak diputar di Windows |
+
+Semua file ada di halaman **[Releases](../../releases/latest)**. Build dibuat otomatis oleh GitHub Actions (`.github/workflows/release.yml`) setiap kali tag `v*` di-push.
+
 > Dokumentasi lengkap: [Setup Firebase](docs/FIREBASE_SETUP.md) · [Design system](DESIGN.md) · [Master sheet](docs/Campus_Escape_Master_Sheet.xlsx) · daftar isi di bawah.
 
 **Versi:** 0.9.0 · **Status:** MVP playable — mode lokal (single-device) **atau** mode online (Firebase, multi-HP + panel admin online) · **Platform:** Android, iOS, Web (preview)
@@ -123,6 +132,23 @@ Build rilis:
 flutter build apk --release        # Android
 flutter build ios --release        # iOS (butuh macOS + Xcode)
 ```
+
+**Build Windows (.exe):** butuh Visual Studio 2022 Community dengan workload **"Desktop development with C++"** (cek `flutter doctor` → Visual Studio ✔). Lalu:
+
+```bash
+flutter config --enable-windows-desktop
+flutter build windows --release
+# hasil: build\windows\x64\runner\Release\  → zip seluruh folder itu (CampusEscape.exe + DLL + data/)
+```
+
+**Rilis otomatis (APK + .exe) ke GitHub Releases:**
+
+```bash
+git tag v0.9.0
+git push origin v0.9.0        # Actions build keduanya, lalu lampirkan ke Releases
+```
+
+Tanpa secrets, build CI memakai `lib/firebase_options.example.dart` (mode lokal). Supaya build CI online, tambahkan secrets `FIREBASE_OPTIONS_DART_B64` dan `GOOGLE_SERVICES_JSON_B64` (isi: `base64 -w0 <file>`) di Settings → Secrets → Actions.
 
 **Mode online (opsional):** ikuti `docs/FIREBASE_SETUP.md` — buat project Firebase, `flutterfire configure` (menimpa `lib/firebase_options.dart`), buat akun admin (`<username>@admin.campusescape.app` + dokumen `admins/{uid}`), lalu `firebase deploy --only firestore:rules`. Build yang belum dikonfigurasi otomatis jalan di mode lokal.
 
@@ -424,6 +450,7 @@ Home, Kampus, Summary, sertifikat, dan aturan unlock otomatis mengikuti `RoomCat
 - Semua layout dihitung dari lebar layar (`MediaQuery.sizeOf` / `LayoutBuilder`), bukan angka tetap: peta, carousel, bingkai HP di ruang Mobile Dev, topologi jaringan, tombol hewan di ruang AI, kolom kabel di ruang Database. Skala font sistem dibatasi 0,85–1,15 di `app.dart` supaya mini-game tetap muat di HP kecil maupun saat pengguna memperbesar font.
 - Di web (`flutter run -d chrome`) lebar dikunci 430 px dan `MediaQuery.size` ikut dikunci, jadi tampilannya sama seperti di HP.
 - **Android:** `minSdk` mengikuti default Flutter (21+). Tidak ada permission tambahan — sertifikat dibagikan lewat share sheet (`printing`), tidak menulis ke storage langsung.
+- **Windows (.exe):** app dibingkai 430 px di tengah window (`_isWideScreenPlatform` di `app.dart`), window default 470×900. `video_player` belum mendukung Windows → kartu video menampilkan pesan, sisanya (Firebase, CSV, sertifikat) berjalan normal. Nama binary `CampusEscape.exe` (`windows/CMakeLists.txt`).
 - **iOS:** folder `ios/` sudah ada; `Podfile` dibuat otomatis saat `flutter build ios` / `flutter run` pertama di macOS (butuh Xcode + CocoaPods). Paket `printing` memerlukan iOS 11+, sudah dipenuhi default Flutter. Preview & share PDF memakai share sheet bawaan iOS. Build iOS hanya bisa dilakukan di macOS; kode Dart-nya sama persis.
 
 ---

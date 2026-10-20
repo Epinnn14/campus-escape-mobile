@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.campusescape" "\0"
-            VALUE "FileDescription", "campus_escape" "\0"
+            VALUE "CompanyName", "SoCS BINUS @Bekasi" "\0"
+            VALUE "FileDescription", "Campus Escape - escape room SoCS BINUS @Bekasi" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "campus_escape" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.campusescape. All rights reserved." "\0"
-            VALUE "OriginalFilename", "campus_escape.exe" "\0"
-            VALUE "ProductName", "campus_escape" "\0"
+            VALUE "InternalName", "CampusEscape" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Kevin Aprilio - SoCS BINUS @Bekasi" "\0"
+            VALUE "OriginalFilename", "CampusEscape.exe" "\0"
+            VALUE "ProductName", "Campus Escape" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

@@ -1,0 +1,125 @@
+# Build otomatis Campus Escape Mobile.
+#
+# - Setiap push tag `v*` (mis. v0.9.0): build APK Android + .exe Windows,
+#   lalu dilampirkan ke halaman GitHub Releases supaya orang tinggal unduh.
+# - Bisa juga dijalankan manual dari tab Actions ("Run workflow") → hasilnya
+#   ada di Artifacts (tanpa membuat Release).
+#
+# Konfigurasi Firebase (opsional). Tanpa secrets di bawah, build memakai
+# lib/firebase_options.example.dart → app berjalan di MODE LOKAL.
+# Untuk build yang online, tambahkan di Settings → Secrets → Actions:
+#   FIREBASE_OPTIONS_DART_B64  = base64 dari lib/firebase_options.dart
+#   GOOGLE_SERVICES_JSON_B64   = base64 dari android/app/google-services.json
+# (Git Bash:  base64 -w0 lib/firebase_options.dart | clip)
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: "3.47.7"
+
+jobs:
+  android:
+    name: APK Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Konfigurasi Firebase (secrets → file, atau placeholder)
+        shell: bash
+        env:
+          OPTS: ${{ secrets.FIREBASE_OPTIONS_DART_B64 }}
+          GSJ: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+        run: |
+          if [ -n "$OPTS" ]; then echo "$OPTS" | base64 -d > lib/firebase_options.dart; echo "firebase_options: dari secrets";
+          else cp lib/firebase_options.example.dart lib/firebase_options.dart; echo "firebase_options: placeholder (mode lokal)"; fi
+          if [ -n "$GSJ" ]; then echo "$GSJ" | base64 -d > android/app/google-services.json; echo "google-services.json: dari secrets"; fi
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build apk --release
+
+      - name: Rename APK
+        shell: bash
+        run: |
+          VER="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = "tag" ] || VER="dev"
+          cp build/app/outputs/flutter-apk/app-release.apk "CampusEscape-$VER-android.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: CampusEscape-*-android.apk
+
+  windows:
+    name: Windows .exe
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Konfigurasi Firebase (secrets → file, atau placeholder)
+        shell: bash
+        env:
+          OPTS: ${{ secrets.FIREBASE_OPTIONS_DART_B64 }}
+        run: |
+          if [ -n "$OPTS" ]; then echo "$OPTS" | base64 -d > lib/firebase_options.dart;
+          else cp lib/firebase_options.example.dart lib/firebase_options.dart; fi
+
+      - run: flutter config --enable-windows-desktop
+      - run: flutter pub get
+      - run: flutter build windows --release
+
+      - name: Zip folder Release
+        shell: pwsh
+        run: |
+          $ver = if ($env:GITHUB_REF_TYPE -eq "tag") { $env:GITHUB_REF_NAME.TrimStart("v") } else { "dev" }
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath "CampusEscape-$ver-windows-x64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: CampusEscape-*-windows-x64.zip
+
+  release:
+    name: Lampirkan ke GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [android, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Campus Escape ${{ github.ref_name }}
+          files: dist/*
+          generate_release_notes: true
+          body: |
+            **Android:** unduh `CampusEscape-*-android.apk`, buka di HP, izinkan "install dari sumber tidak dikenal".
+            **Windows:** unduh `CampusEscape-*-windows-x64.zip`, ekstrak, jalankan `CampusEscape.exe` (kalau SmartScreen muncul: *More info → Run anyway*).
