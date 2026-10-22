@@ -44,8 +44,11 @@ jobs:
           else cp lib/firebase_options.example.dart lib/firebase_options.dart; fi
 
       - run: flutter pub get
+      # base-href: default "/<nama-repo>/" (github.io). Kalau pakai custom
+      # domain, isi Settings → Secrets and variables → Actions → Variables:
+      #   PAGES_BASE_HREF = /
       - name: Build web
-        run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+        run: flutter build web --release --base-href "${{ vars.PAGES_BASE_HREF != '' && vars.PAGES_BASE_HREF || format('/{0}/', github.event.repository.name) }}"
 
       - uses: actions/upload-pages-artifact@v3
         with:

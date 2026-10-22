@@ -194,7 +194,10 @@ class _VideoCardState extends State<_VideoCard> {
   VideoPlayerController? _ctrl;
   bool _loading = false;
   bool _muted = false;
+  double _speed = 1.0;
   String? _error;
+
+  static const _speeds = [1.0, 1.5, 2.0];
 
   Future<void> _start() async {
     if (_ctrl != null || _loading) return;
@@ -239,6 +242,24 @@ class _VideoCardState extends State<_VideoCard> {
     if (c == null) return;
     setState(() => _muted = !_muted);
     c.setVolume(_muted ? 0 : 1);
+  }
+
+  /// Lompat ±detik; dibatasi 0..durasi.
+  Future<void> _skip(int seconds) async {
+    final c = _ctrl;
+    if (c == null || !c.value.isInitialized) return;
+    final target = c.value.position + Duration(seconds: seconds);
+    final max = c.value.duration;
+    await c.seekTo(target < Duration.zero ? Duration.zero : (target > max ? max : target));
+  }
+
+  /// Kecepatan 1x → 1.5x → 2x → 1x.
+  Future<void> _cycleSpeed() async {
+    final c = _ctrl;
+    if (c == null) return;
+    final next = _speeds[(_speeds.indexOf(_speed) + 1) % _speeds.length];
+    setState(() => _speed = next);
+    await c.setPlaybackSpeed(next);
   }
 
   @override
@@ -309,35 +330,15 @@ class _VideoCardState extends State<_VideoCard> {
                             alignment: Alignment.center,
                             child: const Icon(Icons.play_arrow_rounded, size: 56, color: AppColors.textPrimary),
                           ),
-                        // Tombol suara: mute / unmute
-                        Positioned(
-                          right: AppSpacing.xs,
-                          bottom: AppSpacing.xs,
-                          child: Material(
-                            color: AppColors.ground.withValues(alpha: 0.65),
-                            shape: const CircleBorder(),
-                            child: InkWell(
-                              customBorder: const CircleBorder(),
-                              onTap: _toggleMute,
-                              child: SizedBox(
-                                width: 40,
-                                height: 40,
-                                child: Icon(
-                                  _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                                  size: 22,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
           ),
-          if (c != null)
+          if (c != null) ...[
+            // Progress bar: area sentuh diperbesar (padding vertikal) supaya
+            // gampang digeser di HP; allowScrubbing = tap/geser untuk seek.
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 6, AppSpacing.sm, 0),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 2, AppSpacing.sm, 0),
               child: Row(
                 children: [
                   Text(_fmt(c.value.position), style: AppTypography.captionXs),
@@ -346,7 +347,7 @@ class _VideoCardState extends State<_VideoCard> {
                     child: VideoProgressIndicator(
                       c,
                       allowScrubbing: true,
-                      padding: EdgeInsets.zero,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       colors: const VideoProgressColors(
                         playedColor: AppColors.accent,
                         bufferedColor: AppColors.surfaceHighest,
@@ -356,25 +357,49 @@ class _VideoCardState extends State<_VideoCard> {
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Text(_fmt(c.value.duration), style: AppTypography.captionXs),
-                  const SizedBox(width: AppSpacing.xs),
-                  Tooltip(
-                    message: _muted ? 'Nyalakan suara' : 'Matikan suara',
-                    child: InkWell(
-                      onTap: _toggleMute,
-                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Icon(
-                          _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                          size: 18,
-                          color: _muted ? AppColors.textMuted : AppColors.accent,
-                        ),
-                      ),
-                    ),
+                ],
+              ),
+            ),
+            // Tombol kontrol eksplisit — tap di atas video tidak selalu sampai
+            // ke Flutter di web (elemen <video> menelan sentuhan), jadi
+            // pause/lompat/kecepatan disediakan sebagai tombol sungguhan.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _VideoButton(
+                    icon: Icons.replay_10_rounded,
+                    label: '-10 dtk',
+                    onTap: () => _skip(-10),
+                  ),
+                  _VideoButton(
+                    icon: c.value.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    label: c.value.isPlaying ? 'Pause' : 'Putar',
+                    onTap: _toggle,
+                    primary: true,
+                  ),
+                  _VideoButton(
+                    icon: Icons.forward_10_rounded,
+                    label: '+10 dtk',
+                    onTap: () => _skip(10),
+                  ),
+                  _VideoButton(
+                    icon: Icons.speed_rounded,
+                    label: '${_speed == 1.0 ? '1' : _speed.toString()}x',
+                    onTap: _cycleSpeed,
+                    active: _speed != 1.0,
+                  ),
+                  _VideoButton(
+                    icon: _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                    label: _muted ? 'Bisu' : 'Suara',
+                    onTap: _toggleMute,
+                    active: _muted,
                   ),
                 ],
               ),
             ),
+          ],
           Padding(
             padding: const EdgeInsets.all(AppSpacing.sm),
             child: Column(
@@ -391,6 +416,47 @@ class _VideoCardState extends State<_VideoCard> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Tombol kontrol video: ikon + label kecil, area sentuh ≥ 44 px.
+class _VideoButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool primary;
+  final bool active;
+  const _VideoButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.primary = false,
+    this.active = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = primary ? AppColors.onAccent : (active ? AppColors.accent : AppColors.textPrimary);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 56, minHeight: 48),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: primary ? AppColors.accent : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: primary ? 26 : 22, color: fg),
+            Text(label, style: AppTypography.captionXs.copyWith(color: fg, fontWeight: FontWeight.w700)),
+          ],
+        ),
       ),
     );
   }
