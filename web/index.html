@@ -17,12 +17,16 @@
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
+  <!-- viewport-fit=cover: di iPhone (PWA) konten boleh masuk area notch & home
+       indicator, dan Flutter membaca safe-area supaya SafeArea di app akurat.
+       user-scalable=no: cegah zoom tidak sengaja saat double-tap di mini-game. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Campus Escape — escape room mobile SoCS BINUS @Bekasi. 10 ruangan mini-game disiplin IT.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Campus Escape">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
@@ -32,6 +36,10 @@
   <title>Campus Escape</title>
   <meta name="theme-color" content="#0B1220">
   <link rel="manifest" href="manifest.json">
+  <style>
+    /* Latar sama dengan app selama loading; tanpa bounce/overscroll di iOS. */
+    html, body { margin: 0; padding: 0; background: #0B1220; height: 100%; overflow: hidden; overscroll-behavior: none; -webkit-touch-callout: none; }
+  </style>
 </head>
 <body>
   <!--

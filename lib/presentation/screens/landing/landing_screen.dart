@@ -255,7 +255,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                   textInputAction: TextInputAction.next,
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   decoration: const InputDecoration(
-                    hintText: 'Misal: Kevin Aprilio',
+                    hintText: 'Misal: Prabowo Subianto',
                     counterText: '',
                     prefixIcon: Icon(Icons.badge_outlined, size: 20),
                   ),

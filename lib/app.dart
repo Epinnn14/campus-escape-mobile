@@ -7,6 +7,7 @@ import 'application/providers/session_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'presentation/widgets/app_backdrop.dart';
 
 /// Web & desktop (Windows/macOS/Linux) punya layar lebar: app dibingkai
 /// seukuran HP (430 px) di tengah supaya layout mini-game tetap benar.
@@ -48,13 +49,19 @@ class CampusEscapeApp extends ConsumerWidget {
           ),
           child: child,
         );
-        if (!wide) return scaled;
+        // Tekstur latar (grid titik + jalur sirkuit) ikut warna robot avatar,
+        // supaya layar tidak polos tanpa melanggar aturan "foto hanya konten".
+        final textured = Stack(
+          fit: StackFit.expand,
+          children: [scaled, AppBackdrop(tint: tint ?? AppColors.success)],
+        );
+        if (!wide) return textured;
         return ColoredBox(
           color: AppColors.surfaceDim,
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 430),
-              child: scaled,
+              child: textured,
             ),
           ),
         );

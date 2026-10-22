@@ -89,7 +89,7 @@ class CollectionScreen extends StatelessWidget {
             Text(SocsProfile.lecturersIntro, style: AppTypography.caption),
             const SizedBox(height: AppSpacing.sm),
             for (final l in SocsProfile.lecturers) ...[
-              _LecturerTile(lecturer: l),
+              _LecturerTile(lecturer: l, onTap: () => _openLecturer(context, l)),
               const SizedBox(height: AppSpacing.xs),
             ],
             const SizedBox(height: AppSpacing.lg),
@@ -143,6 +143,19 @@ class CollectionScreen extends StatelessWidget {
 
   void _openPhoto(BuildContext context, int index) {
     showDialog<void>(context: context, builder: (ctx) => _PhotoViewer(initialIndex: index));
+  }
+
+  void _openLecturer(BuildContext context, Lecturer lecturer) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+        side: BorderSide(color: AppColors.outline, width: 1.5),
+      ),
+      builder: (ctx) => _LecturerSheet(lecturer: lecturer),
+    );
   }
 
   void _openFact(BuildContext context, SocsFact fact) {
@@ -535,12 +548,14 @@ class _JourneyStep extends StatelessWidget {
 
 class _LecturerTile extends StatelessWidget {
   final Lecturer lecturer;
-  const _LecturerTile({required this.lecturer});
+  final VoidCallback? onTap;
+  const _LecturerTile({required this.lecturer, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return SurfaceCard(
       padding: const EdgeInsets.all(AppSpacing.sm),
+      onTap: onTap,
       child: Row(
         children: [
           lecturer.photo == null
@@ -566,6 +581,88 @@ class _LecturerTile extends StatelessWidget {
               ],
             ),
           ),
+          if (onTap != null) const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+        ],
+      ),
+    );
+  }
+}
+
+/// Pop-up dosen (bottom sheet, gaya sama dengan fakta & ruangan): foto besar,
+/// nama, jabatan, program, dan link profil resmi. Tidak ada biodata karangan —
+/// hanya data dari halaman People CSSE.
+class _LecturerSheet extends StatelessWidget {
+  final Lecturer lecturer;
+  const _LecturerSheet({required this.lecturer});
+
+  static const _sourceUrl = 'https://binus.ac.id/bekasi/csse/';
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    final width = MediaQuery.sizeOf(context).width;
+    final photoSize = (width * 0.42).clamp(120.0, 180.0);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(AppSpacing.screenH, AppSpacing.md, AppSpacing.screenH, AppSpacing.xl + bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(color: AppColors.outline, borderRadius: BorderRadius.circular(AppRadius.pill)),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Center(
+            child: Container(
+              width: photoSize,
+              height: photoSize,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceRaised,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                border: Border.all(color: AppColors.outline),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: lecturer.photo == null
+                  ? Center(child: InitialsAvatar(initials: lecturer.initials, size: photoSize * 0.6))
+                  : CampusImage(asset: lecturer.photo!, fit: BoxFit.cover),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          const AppPill(label: 'DOSEN CSSE', foreground: AppColors.bonusAI),
+          const SizedBox(height: AppSpacing.xs),
+          Text(lecturer.name, style: AppTypography.headlineMd),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(lecturer.role, style: AppTypography.bodyMd.copyWith(color: AppColors.textSecondary)),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Program Computer Science – Software Engineering, School of Computer Science BINUS @Bekasi. '
+            'Kalau ketemu saat kunjungan, tanya langsung soal mata kuliah, proyek, dan karier di bidangnya.',
+            style: AppTypography.caption,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          SurfaceCard(
+            color: AppColors.surfaceDim,
+            borderColor: AppColors.outlineSubtle,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 10),
+            onTap: () {
+              Clipboard.setData(const ClipboardData(text: _sourceUrl));
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link profil dosen disalin.')));
+            },
+            child: Row(
+              children: [
+                const Icon(Icons.link_rounded, size: 16, color: AppColors.textMuted),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(child: Text('$_sourceUrl (People)', style: AppTypography.captionXs, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                Text('Salin', style: AppTypography.captionXs.copyWith(color: AppColors.accent)),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          SecondaryButton(label: 'Tutup', onPressed: () => Navigator.of(context).pop()),
         ],
       ),
     );
