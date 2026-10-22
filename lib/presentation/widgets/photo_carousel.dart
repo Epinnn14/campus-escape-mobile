@@ -10,13 +10,20 @@ import '../../data/models/socs_fact.dart';
 class CampusImage extends StatelessWidget {
   final String asset;
   final BoxFit fit;
-  const CampusImage({super.key, required this.asset, this.fit = BoxFit.cover});
+
+  /// Lebar decode (px). Default: lebar layar × DPR. Isi kecil (mis. 160)
+  /// untuk thumbnail supaya bitmap 1200 px tidak di-decode penuh.
+  final int? cacheWidth;
+  const CampusImage({super.key, required this.asset, this.fit = BoxFit.cover, this.cacheWidth});
 
   @override
   Widget build(BuildContext context) {
+    final width = cacheWidth ??
+        (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context)).round().clamp(360, 1600);
     return Image.asset(
       asset,
       fit: fit,
+      cacheWidth: width,
       errorBuilder: (_, __, ___) => Container(
         color: AppColors.surfaceRaised,
         alignment: Alignment.center,

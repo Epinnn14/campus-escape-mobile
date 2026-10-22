@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/open_link.dart';
 import '../../../data/models/socs_fact.dart';
 import '../../../data/models/socs_profile.dart';
 import '../../widgets/buttons.dart';
@@ -194,10 +194,14 @@ class _VideoCardState extends State<_VideoCard> {
   VideoPlayerController? _ctrl;
   bool _loading = false;
   bool _muted = false;
-  double _speed = 1.0;
   String? _error;
 
-  static const _speeds = [1.0, 1.5, 2.0];
+  /// Umpan balik singkat saat double-tap ("+5 dtk" / "-5 dtk").
+  String? _skipHint;
+  bool _skipForward = true;
+  Timer? _skipHintTimer;
+
+  static const _skipStep = Duration(seconds: 5);
 
   Future<void> _start() async {
     if (_ctrl != null || _loading) return;
@@ -206,7 +210,6 @@ class _VideoCardState extends State<_VideoCard> {
     try {
       await c.initialize();
       await c.setVolume(1.0);
-      c.addListener(_onTick);
       await c.play();
       if (!mounted) {
         c.dispose();
@@ -227,14 +230,31 @@ class _VideoCardState extends State<_VideoCard> {
     }
   }
 
-  void _onTick() {
-    if (mounted) setState(() {});
-  }
-
+  /// Tap sekali: pause / lanjut.
   void _toggle() {
     final c = _ctrl;
     if (c == null) return;
     c.value.isPlaying ? c.pause() : c.play();
+  }
+
+  /// Double-tap: sisi kanan maju 5 detik, sisi kiri mundur 5 detik.
+  Future<void> _doubleTap(TapDownDetails d, double width) async {
+    final c = _ctrl;
+    if (c == null || !c.value.isInitialized) return;
+    final forward = d.localPosition.dx >= width / 2;
+    var target = c.value.position + (forward ? _skipStep : -_skipStep);
+    if (target < Duration.zero) target = Duration.zero;
+    if (target > c.value.duration) target = c.value.duration;
+    await c.seekTo(target);
+    if (!mounted) return;
+    _skipHintTimer?.cancel();
+    setState(() {
+      _skipForward = forward;
+      _skipHint = forward ? '+5 dtk' : '-5 dtk';
+    });
+    _skipHintTimer = Timer(const Duration(milliseconds: 650), () {
+      if (mounted) setState(() => _skipHint = null);
+    });
   }
 
   void _toggleMute() {
@@ -244,35 +264,11 @@ class _VideoCardState extends State<_VideoCard> {
     c.setVolume(_muted ? 0 : 1);
   }
 
-  /// Lompat ±detik; dibatasi 0..durasi.
-  Future<void> _skip(int seconds) async {
-    final c = _ctrl;
-    if (c == null || !c.value.isInitialized) return;
-    final target = c.value.position + Duration(seconds: seconds);
-    final max = c.value.duration;
-    await c.seekTo(target < Duration.zero ? Duration.zero : (target > max ? max : target));
-  }
-
-  /// Kecepatan 1x → 1.5x → 2x → 1x.
-  Future<void> _cycleSpeed() async {
-    final c = _ctrl;
-    if (c == null) return;
-    final next = _speeds[(_speeds.indexOf(_speed) + 1) % _speeds.length];
-    setState(() => _speed = next);
-    await c.setPlaybackSpeed(next);
-  }
-
   @override
   void dispose() {
-    _ctrl?.removeListener(_onTick);
+    _skipHintTimer?.cancel();
     _ctrl?.dispose();
     super.dispose();
-  }
-
-  String _fmt(Duration d) {
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
   }
 
   @override
@@ -290,116 +286,8 @@ class _VideoCardState extends State<_VideoCard> {
         children: [
           AspectRatio(
             aspectRatio: c != null && c.value.isInitialized ? c.value.aspectRatio : 16 / 9,
-            child: c == null
-                ? InkWell(
-                    onTap: _loading ? null : _start,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        const CampusImage(asset: SocsProfile.videoPoster),
-                        Container(color: AppColors.ground.withValues(alpha: 0.35)),
-                        Center(
-                          child: _loading
-                              ? const SizedBox(width: 36, height: 36, child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.accent))
-                              : Container(
-                                  width: 64,
-                                  height: 64,
-                                  decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle),
-                                  child: const Icon(Icons.play_arrow_rounded, size: 40, color: AppColors.onAccent),
-                                ),
-                        ),
-                        if (_error != null)
-                          Positioned(
-                            left: AppSpacing.sm,
-                            right: AppSpacing.sm,
-                            bottom: AppSpacing.sm,
-                            child: StatusBanner(kind: BannerKind.warning, text: _error!),
-                          ),
-                      ],
-                    ),
-                  )
-                : GestureDetector(
-                    onTap: _toggle,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        VideoPlayer(c),
-                        if (!c.value.isPlaying)
-                          Container(
-                            color: AppColors.ground.withValues(alpha: 0.35),
-                            alignment: Alignment.center,
-                            child: const Icon(Icons.play_arrow_rounded, size: 56, color: AppColors.textPrimary),
-                          ),
-                      ],
-                    ),
-                  ),
+            child: c == null ? _poster() : _player(c),
           ),
-          if (c != null) ...[
-            // Progress bar: area sentuh diperbesar (padding vertikal) supaya
-            // gampang digeser di HP; allowScrubbing = tap/geser untuk seek.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 2, AppSpacing.sm, 0),
-              child: Row(
-                children: [
-                  Text(_fmt(c.value.position), style: AppTypography.captionXs),
-                  const SizedBox(width: AppSpacing.xs),
-                  Expanded(
-                    child: VideoProgressIndicator(
-                      c,
-                      allowScrubbing: true,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      colors: const VideoProgressColors(
-                        playedColor: AppColors.accent,
-                        bufferedColor: AppColors.surfaceHighest,
-                        backgroundColor: AppColors.outline,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Text(_fmt(c.value.duration), style: AppTypography.captionXs),
-                ],
-              ),
-            ),
-            // Tombol kontrol eksplisit — tap di atas video tidak selalu sampai
-            // ke Flutter di web (elemen <video> menelan sentuhan), jadi
-            // pause/lompat/kecepatan disediakan sebagai tombol sungguhan.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, 2),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _VideoButton(
-                    icon: Icons.replay_10_rounded,
-                    label: '-10 dtk',
-                    onTap: () => _skip(-10),
-                  ),
-                  _VideoButton(
-                    icon: c.value.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    label: c.value.isPlaying ? 'Pause' : 'Putar',
-                    onTap: _toggle,
-                    primary: true,
-                  ),
-                  _VideoButton(
-                    icon: Icons.forward_10_rounded,
-                    label: '+10 dtk',
-                    onTap: () => _skip(10),
-                  ),
-                  _VideoButton(
-                    icon: Icons.speed_rounded,
-                    label: '${_speed == 1.0 ? '1' : _speed.toString()}x',
-                    onTap: _cycleSpeed,
-                    active: _speed != 1.0,
-                  ),
-                  _VideoButton(
-                    icon: _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                    label: _muted ? 'Bisu' : 'Suara',
-                    onTap: _toggleMute,
-                    active: _muted,
-                  ),
-                ],
-              ),
-            ),
-          ],
           Padding(
             padding: const EdgeInsets.all(AppSpacing.sm),
             child: Column(
@@ -407,11 +295,12 @@ class _VideoCardState extends State<_VideoCard> {
               children: [
                 Text(SocsProfile.videoTitle, style: AppTypography.titleMd),
                 const SizedBox(height: 2),
-                Text(SocsProfile.videoCaption, style: AppTypography.captionXs),
-                if (c != null && _muted) ...[
-                  const SizedBox(height: 4),
-                  Text('Suara dimatikan — tap ikon speaker untuk menyalakan.', style: AppTypography.captionXs.copyWith(color: AppColors.warning)),
-                ],
+                Text(
+                  c == null
+                      ? SocsProfile.videoCaption
+                      : 'Tap untuk pause · tap 2× kanan/kiri untuk maju/mundur 5 detik',
+                  style: AppTypography.captionXs,
+                ),
               ],
             ),
           ),
@@ -419,44 +308,131 @@ class _VideoCardState extends State<_VideoCard> {
       ),
     );
   }
-}
 
-/// Tombol kontrol video: ikon + label kecil, area sentuh ≥ 44 px.
-class _VideoButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool primary;
-  final bool active;
-  const _VideoButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.primary = false,
-    this.active = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final fg = primary ? AppColors.onAccent : (active ? AppColors.accent : AppColors.textPrimary);
+  /// Sebelum diputar: poster + tombol play (video baru dimuat saat ditekan).
+  Widget _poster() {
     return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: Container(
-        constraints: const BoxConstraints(minWidth: 56, minHeight: 48),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: primary ? AppColors.accent : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: primary ? 26 : 22, color: fg),
-            Text(label, style: AppTypography.captionXs.copyWith(color: fg, fontWeight: FontWeight.w700)),
-          ],
-        ),
+      onTap: _loading ? null : _start,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const CampusImage(asset: SocsProfile.videoPoster),
+          Container(color: AppColors.ground.withValues(alpha: 0.35)),
+          Center(
+            child: _loading
+                ? const SizedBox(width: 36, height: 36, child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.accent))
+                : Container(
+                    width: 64,
+                    height: 64,
+                    decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle),
+                    child: const Icon(Icons.play_arrow_rounded, size: 40, color: AppColors.onAccent),
+                  ),
+          ),
+          if (_error != null)
+            Positioned(
+              left: AppSpacing.sm,
+              right: AppSpacing.sm,
+              bottom: AppSpacing.sm,
+              child: StatusBanner(kind: BannerKind.warning, text: _error!),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Saat diputar: video + lapisan gesture di atasnya (tap = pause, double-tap
+  /// = ±5 detik), progress tipis di tepi bawah, tombol mute di pojok.
+  Widget _player(VideoPlayerController c) {
+    return LayoutBuilder(
+      builder: (context, box) => Stack(
+        fit: StackFit.expand,
+        children: [
+          VideoPlayer(c),
+          // Lapisan gesture memakai behavior.opaque supaya sentuhan tertangkap
+          // walau di atas elemen video (penting di web).
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _toggle,
+            onDoubleTapDown: (d) => _doubleTap(d, box.maxWidth),
+            child: const SizedBox.expand(),
+          ),
+          // Hanya overlay pause + progress yang ikut tiap update posisi video;
+          // kartu lainnya tidak di-rebuild.
+          ValueListenableBuilder<VideoPlayerValue>(
+            valueListenable: c,
+            builder: (_, v, __) {
+              final progress = v.duration.inMilliseconds == 0
+                  ? 0.0
+                  : (v.position.inMilliseconds / v.duration.inMilliseconds).clamp(0.0, 1.0);
+              return IgnorePointer(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (!v.isPlaying)
+                      Container(
+                        color: AppColors.ground.withValues(alpha: 0.35),
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.play_arrow_rounded, size: 56, color: AppColors.textPrimary),
+                      ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 3,
+                        backgroundColor: AppColors.ground.withValues(alpha: 0.5),
+                        color: AppColors.accent,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          if (_skipHint != null)
+            IgnorePointer(
+              child: Align(
+                alignment: _skipForward ? const Alignment(0.55, 0) : const Alignment(-0.55, 0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.ground.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_skipForward ? Icons.forward_5_rounded : Icons.replay_5_rounded, size: 22, color: AppColors.textPrimary),
+                      const SizedBox(width: 6),
+                      Text(_skipHint!, style: AppTypography.captionXs.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          Positioned(
+            right: AppSpacing.xs,
+            bottom: AppSpacing.sm,
+            child: Material(
+              color: AppColors.ground.withValues(alpha: 0.65),
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: _toggleMute,
+                child: SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: Icon(
+                    _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                    size: 22,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -635,7 +611,7 @@ class _LecturerTile extends StatelessWidget {
                     border: Border.all(color: AppColors.outline),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: CampusImage(asset: lecturer.photo!, fit: BoxFit.cover),
+                  child: CampusImage(asset: lecturer.photo!, fit: BoxFit.cover, cacheWidth: 160),
                 ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
@@ -710,23 +686,7 @@ class _LecturerSheet extends StatelessWidget {
             style: AppTypography.caption,
           ),
           const SizedBox(height: AppSpacing.md),
-          SurfaceCard(
-            color: AppColors.surfaceDim,
-            borderColor: AppColors.outlineSubtle,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 10),
-            onTap: () {
-              Clipboard.setData(const ClipboardData(text: _sourceUrl));
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link profil dosen disalin.')));
-            },
-            child: Row(
-              children: [
-                const Icon(Icons.link_rounded, size: 16, color: AppColors.textMuted),
-                const SizedBox(width: AppSpacing.xs),
-                Expanded(child: Text('$_sourceUrl (People)', style: AppTypography.captionXs, maxLines: 1, overflow: TextOverflow.ellipsis)),
-                Text('Salin', style: AppTypography.captionXs.copyWith(color: AppColors.accent)),
-              ],
-            ),
-          ),
+          const _LinkCard(label: 'Profil dosen di binus.ac.id (People)', url: _sourceUrl),
           const SizedBox(height: AppSpacing.md),
           SecondaryButton(label: 'Tutup', onPressed: () => Navigator.of(context).pop()),
         ],
@@ -750,7 +710,7 @@ class _LogoChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.sm),
         border: Border.all(color: AppColors.outline),
       ),
-      child: CampusImage(asset: asset, fit: BoxFit.contain),
+      child: CampusImage(asset: asset, fit: BoxFit.contain, cacheWidth: 120),
     );
   }
 }
@@ -764,10 +724,7 @@ class _SourceRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: InkWell(
-        onTap: () {
-          Clipboard.setData(ClipboardData(text: link.url));
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link sumber disalin.')));
-        },
+        onTap: () => openLink(context, link.url),
         borderRadius: BorderRadius.circular(AppRadius.xs),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -783,9 +740,36 @@ class _SourceRow extends StatelessWidget {
                 ],
               ),
             ),
-            Text('Salin', style: AppTypography.captionXs.copyWith(color: AppColors.accent)),
+            const Icon(Icons.open_in_new_rounded, size: 14, color: AppColors.accent),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Kartu link: tap → langsung buka di browser (fallback: salin ke clipboard).
+class _LinkCard extends StatelessWidget {
+  final String label;
+  final String url;
+  const _LinkCard({required this.label, required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return SurfaceCard(
+      color: AppColors.surfaceDim,
+      borderColor: AppColors.outlineSubtle,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 10),
+      onTap: () => openLink(context, url),
+      child: Row(
+        children: [
+          const Icon(Icons.link_rounded, size: 16, color: AppColors.textMuted),
+          const SizedBox(width: AppSpacing.xs),
+          Expanded(child: Text(label, style: AppTypography.captionXs, maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Text('Buka', style: AppTypography.captionXs.copyWith(color: AppColors.accent, fontWeight: FontWeight.w700)),
+          const SizedBox(width: 4),
+          const Icon(Icons.open_in_new_rounded, size: 14, color: AppColors.accent),
+        ],
       ),
     );
   }
@@ -956,23 +940,7 @@ class _FactSheet extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
           Text(fact.body, style: AppTypography.bodyMd.copyWith(color: AppColors.textSecondary)),
           const SizedBox(height: AppSpacing.md),
-          SurfaceCard(
-            color: AppColors.surfaceDim,
-            borderColor: AppColors.outlineSubtle,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 10),
-            onTap: () {
-              Clipboard.setData(ClipboardData(text: fact.sourceUrl));
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link sumber disalin.')));
-            },
-            child: Row(
-              children: [
-                const Icon(Icons.link_rounded, size: 16, color: AppColors.textMuted),
-                const SizedBox(width: AppSpacing.xs),
-                Expanded(child: Text(fact.sourceUrl, style: AppTypography.captionXs, maxLines: 1, overflow: TextOverflow.ellipsis)),
-                Text('Salin', style: AppTypography.captionXs.copyWith(color: AppColors.accent)),
-              ],
-            ),
-          ),
+          _LinkCard(label: fact.sourceUrl, url: fact.sourceUrl),
           const SizedBox(height: AppSpacing.md),
           SecondaryButton(label: 'Tutup', onPressed: () => Navigator.of(context).pop()),
         ],

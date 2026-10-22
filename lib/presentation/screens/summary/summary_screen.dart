@@ -44,7 +44,6 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
     return CertificateData(
       name: session.displayName,
       school: session.schoolOrigin,
-      members: const [],
       predicate: _predicate(total, escaped, allDone, totals.core),
       totalScore: session.totalScore,
       roomsCompleted: total,

@@ -56,13 +56,16 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      # Dua APK: universal (semua chip, ±70 MB) dan arm64 (HP modern, ±30 MB).
       - run: flutter build apk --release
+      - run: flutter build apk --release --split-per-abi --target-platform android-arm64
 
       - name: Rename APK
         shell: bash
         run: |
           VER="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = "tag" ] || VER="dev"
           cp build/app/outputs/flutter-apk/app-release.apk "CampusEscape-$VER-android.apk"
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "CampusEscape-$VER-android-arm64.apk"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -121,5 +124,5 @@ jobs:
           files: dist/*
           generate_release_notes: true
           body: |
-            **Android:** unduh `CampusEscape-*-android.apk`, buka di HP, izinkan "install dari sumber tidak dikenal".
+            **Android:** unduh `CampusEscape-*-android-arm64.apk` (HP keluaran 2017+, lebih kecil) atau `CampusEscape-*-android.apk` (universal), buka di HP, izinkan "install dari sumber tidak dikenal".
             **Windows:** unduh `CampusEscape-*-windows-x64.zip`, ekstrak, jalankan `CampusEscape.exe` (kalau SmartScreen muncul: *More info → Run anyway*).

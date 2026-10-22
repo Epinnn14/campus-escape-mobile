@@ -43,11 +43,6 @@ class SessionNotifier extends Notifier<PlayerSession> {
     _persist();
   }
 
-  void setMembers(List<String> members) {
-    state = state.copyWith(members: members);
-    _persist();
-  }
-
   void addScore(int points) {
     state = state.copyWith(totalScore: state.totalScore + points);
     _persist();

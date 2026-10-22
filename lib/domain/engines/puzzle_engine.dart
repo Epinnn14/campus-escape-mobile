@@ -13,43 +13,6 @@ class PuzzleResult {
     required this.stars,
     required this.feedback,
   });
-
-  static const failed = PuzzleResult(
-    isSuccess: false,
-    score: 0,
-    stars: 0,
-    feedback: 'Belum tepat. Coba cek lagi urutannya.',
-  );
-}
-
-/// Status pengecekan urutan — dipakai buat banner di layar.
-enum SequenceCheck { incomplete, wrong, correct }
-
-/// Mengecek urutan tahapan (drag-and-drop ordering).
-abstract class SequenceEvaluator {
-  static SequenceCheck check({
-    required List<String> placed,
-    required List<String> answer,
-  }) {
-    if (placed.length < answer.length || placed.any((e) => e.isEmpty)) {
-      return SequenceCheck.incomplete;
-    }
-    for (var i = 0; i < answer.length; i++) {
-      if (placed[i] != answer[i]) return SequenceCheck.wrong;
-    }
-    return SequenceCheck.correct;
-  }
-
-  /// Indeks pertama yang salah, buat petunjuk "cek lagi setelah X".
-  static int? firstMismatch({
-    required List<String> placed,
-    required List<String> answer,
-  }) {
-    for (var i = 0; i < answer.length && i < placed.length; i++) {
-      if (placed[i] != answer[i]) return i;
-    }
-    return null;
-  }
 }
 
 /// Skor ruangan: base − penalti petunjuk − penalti jawaban salah.

@@ -39,6 +39,8 @@
   <style>
     /* Latar sama dengan app selama loading; tanpa bounce/overscroll di iOS. */
     html, body { margin: 0; padding: 0; background: #0B1220; height: 100%; overflow: hidden; overscroll-behavior: none; -webkit-touch-callout: none; }
+    /* Sentuhan di atas elemen <video> diteruskan ke Flutter (tap = pause, double-tap = ±5 dtk). */
+    video { pointer-events: none; }
   </style>
 </head>
 <body>

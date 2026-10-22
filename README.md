@@ -27,7 +27,7 @@
 | Platform | Cara |
 |---|---|
 | **iPhone / iPad** | Buka link web di Safari → Share → *Add to Home Screen*. (Build iOS native butuh Mac + akun Apple Developer untuk TestFlight — belum tersedia) |
-| **Android** | Link web di atas, **atau** install APK `CampusEscape-<versi>-android.apk` dari [Releases](../../releases/latest) (izinkan install dari sumber tidak dikenal) |
+| **Android** | Link web di atas, **atau** install APK dari [Releases](../../releases/latest): `CampusEscape-<versi>-android-arm64.apk` (HP 2017+, ±30 MB) atau `…-android.apk` (universal, ±70 MB). Izinkan install dari sumber tidak dikenal |
 | **Windows** | `CampusEscape-<versi>-windows-x64.zip` dari [Releases](../../releases/latest) → ekstrak → `CampusEscape.exe` (SmartScreen: *More info → Run anyway*). Video profil tidak diputar di Windows |
 
 APK & .exe dibuat otomatis oleh GitHub Actions (`.github/workflows/release.yml`) setiap kali tag `v*` di-push.
@@ -102,7 +102,8 @@ Pola desain puzzle: setiap ruangan adalah **mini-game yang berbeda** dan menjadi
 | Font | **google_fonts** | ^6.2.1 | Space Grotesk (judul/angka) + Manrope (body) + JetBrains Mono (kode). Di-cache setelah fetch pertama |
 | Ikon | Material Icons (bawaan Flutter) | — | DESIGN.md menyebut Lucide; dipakai Material outlined yang paling dekat supaya tanpa dependency tambahan |
 | PDF | **pdf** + **printing** | ^3.11.1 / ^5.13.4 | Sertifikat A4 landscape dibuat di perangkat; `printing` menyediakan share sheet / preview tanpa plugin tambahan |
-| Video | **video_player** | ^2.9.2 | Memutar video profil SoCS dari asset (ExoPlayer di Android, AVFoundation di iOS), tanpa internet |
+| Video | **video_player** | ^2.9.2 | Memutar video profil SoCS dari asset (ExoPlayer di Android, AVFoundation di iOS), tanpa internet. Kontrol: tap = pause, double-tap kanan/kiri = ±5 detik, tombol mute |
+| Link luar | **url_launcher** | ^6.3.1 | Link sumber & profil dosen dibuka langsung di browser (fallback: salin ke clipboard) |
 | Backend (opsional) | **firebase_core** + **firebase_auth** + **cloud_firestore** | ^4.15 / ^6.7 / ^6.10 | Mode online: login anonim peserta, login username+password admin (email sintetis), Firestore real-time + cache offline. Tidak aktif sebelum `flutterfire configure` |
 | Lint | flutter_lints | ^4.0.0 | Standar |
 | Test | flutter_test | — | Unit test untuk engine puzzle |
@@ -196,7 +197,7 @@ campus_escape/
 │   │   │   ├── socs_fact.dart         # CampusPhotos (5 foto fasilitas) + BrandLogos + SocsFactCatalog (15 fakta singkat)
 │   │   │   ├── socs_profile.dart      # SocsProfile: video, tentang, kenapa CSSE, academic journey, dosen, HIMTI, sumber
 │   │   │   ├── room_progress.dart     # progres per ruangan (status, skor, bintang, waktu)
-│   │   │   ├── player_session.dart    # sesi pemain (nama, sekolah, phone, avatarIndex, anggota, skor) + RobotAvatars + PhoneFormat/NameFormat
+│   │   │   ├── player_session.dart    # sesi pemain (nama, sekolah, phone, avatarIndex, skor) + RobotAvatars + PhoneFormat/NameFormat
 │   │   │   ├── player_record.dart     # arsip pemain untuk admin & leaderboard (skor per ruangan, waktu)
 │   │   │   ├── room_settings.dart     # RoomSettings (ruangan nonaktif, override XP) + AdminConfig (password lokal)
 │   │   │   ├── event_info.dart        # EventInfo/EventWinner (acara online) + EventCodeFormat + AdminUsername
@@ -208,14 +209,14 @@ campus_escape/
 │   │       └── event_repository.dart  # CRUD events/players/private di Firestore (sisi peserta & admin)
 │   ├── domain/
 │   │   ├── engines/
-│   │   │   └── puzzle_engine.dart     # ScoreCalculator, CipherEngine, SequenceEvaluator (pure Dart)
+│   │   │   └── puzzle_engine.dart     # ScoreCalculator, CipherEngine (pure Dart)
 │   │   └── services/
 │   │       ├── certificate_service.dart # CertificateData + CertificateService.build() → PDF bytes
 │   │       └── admin_export_service.dart # CSV pemain: header/rows/csv(), unduh via share sheet (share_plus)
 │   ├── application/
 │   │   └── providers/
 │   │       ├── local_storage_provider.dart
-│   │       ├── session_provider.dart      # SessionNotifier (register, setAvatar, setMembers, addScore, reset)
+│   │       ├── session_provider.dart      # SessionNotifier (register, setAvatar, addScore, reset)
 │   │       ├── room_progress_provider.dart# aturan unlock (hanya ruangan aktif), completeRoom, recomputeUnlocks, nextRoomProvider
 │       ├── room_settings_provider.dart# roomSettingsProvider, activeRoomsProvider, roomTotalsProvider, adminConfigProvider
 │       ├── player_archive_provider.dart# arsip semua pemain (syncCurrent saat daftar/selesai ruangan/reset)
@@ -240,7 +241,7 @@ campus_escape/
 │           ├── map/         campus_map_screen.dart    # level map berkelok + dekorasi foto/logo (CustomPainter)
 │           ├── collection/  collection_screen.dart    # Kampus: video + profil CSSE, journey, fasilitas, dosen, HIMTI, fakta rolling
 │           ├── leaderboard/ leaderboard_screen.dart
-│           ├── profile/     profile_screen.dart       # akun, ganti robot avatar, stats, anggota, reset
+│           ├── profile/     profile_screen.dart       # akun, ganti robot avatar, stats, pencapaian, reset
 │           ├── insight/     insight_card_screen.dart  # kartu wawasan setelah ruangan selesai
 │           ├── summary/     summary_screen.dart       # ringkasan akhir + unduh/preview sertifikat PDF
 │           ├── admin/       admin_screen.dart         # openAdminPanel() + AdminPanelRoute + AdminScreen (panel LOKAL, password)
@@ -286,7 +287,7 @@ UI (ConsumerWidget) ──ref.watch──▶ Provider (Notifier) ──write-thr
 | Provider | Tipe | Isi |
 |---|---|---|
 | `localStorageProvider` | `Provider<LocalStorageService>` | Di-override di `main()` setelah Hive siap |
-| `sessionProvider` | `Notifier<PlayerSession>` | Registrasi (`register(teamName, schoolOrigin, avatarIndex)`), `setAvatar`, `setMembers`, `addScore`, `resetToFresh` |
+| `sessionProvider` | `Notifier<PlayerSession>` | Registrasi (`register(...)`), `setAvatar`, `addScore`, `resetToFresh` |
 | `roomProgressProvider` | `Notifier<List<RoomProgress>>` | Status 10 ruangan, `markActive`, `addHint`, `completeRoom`, aturan unlock |
 | `nextRoomProvider` | `Provider<RoomProgress?>` | Ruangan untuk kartu "Lanjutkan" di Home |
 | `completedCountProvider` | `Provider<({int core, int bonus})>` | Hitungan ruangan selesai |
@@ -320,7 +321,7 @@ LeaderboardEntry (snapshot, dummy di v0.2)
 
 **RoomProgress**: `roomId`, `status` (`locked | unlocked | active | completed`), `timeSpentSeconds`, `score`, `stars` (1–3), `hintsUsed`, `completedAt`.
 
-**PlayerSession**: `sessionId`, `teamName` (nama lengkap pemain), `schoolOrigin`, `phone` (nomor HP ternormalisasi 08…), `avatarIndex` (0–11 → `RobotAvatars.all`), `members[]` (legacy, selalu kosong sejak 0.9), `createdAt`, `startedAt`, `totalScore`. Turunan: `displayName`, `avatar` (`RobotVariant{name, color}`), `verificationCode` (`CE-<tahun>-<5 char>`, dicetak di sertifikat).
+**PlayerSession**: `sessionId`, `teamName` (nama lengkap pemain), `schoolOrigin`, `phone` (nomor HP ternormalisasi 08…), `avatarIndex` (0–11 → `RobotAvatars.all`), `createdAt`, `startedAt`, `totalScore`. Turunan: `displayName`, `avatar` (`RobotVariant{name, color}`), `verificationCode` (`CE-<tahun>-<5 char>`, dicetak di sertifikat).
 
 **RobotAvatars** (12 warna dasar): Electric Blue, Coral Blaze, Cyber Mint, Sunny Yellow, Neon Violet, Emerald Tech, Hot Pink, Sky Pulse, Lime Spark, Orange Core, Indigo Byte, Rose Signal. Avatar digambar sebagai ikon robot di kotak berwarna (`RobotAvatar` widget), tanpa aset gambar.
 
@@ -353,7 +354,7 @@ Splash ─▶ Landing (nama + sekolah + pilih robot) ─▶ Home ⇄ Peta ⇄ Ka
 | `/landing` | Landing | Headline, 3 stat, "Cara main", foto gedung BINUS @Bekasi (`campus_hero_wide.jpg`) di bagian atas yang memudar ke warna latar (+ logo), form **nama lengkap** (wajib, huruf saja) + **nomor HP** (wajib, keyboard angka, validasi 08xx/+62, contoh 08123456789) + **asal sekolah (SMA/SMK)** (wajib diawali SMA/SMK/SMAN/SMKN/MA/MAN dan ada nama sekolahnya, mis. SMAN 1 Bekasi); judul & tile robot terpilih ikut warna robot, grid **12 robot avatar** — background langsung berubah ikut robot yang dipilih — tombol **Mulai Petualangan** (ditolak + snackbar kalau form belum valid) |
 | `/home` | Home | Robot avatar + nama, kartu progres (N/10 + bar 10 segmen + skor), kartu **Lanjutkan** (menampilkan nama mini-game berikutnya), 4 shortcut, **carousel foto kampus berputar tanpa henti** + kartu promo CSSE di bagian bawah |
 | `/map` | Peta Jalur | Level map berkelok dari bawah (Ruang 1) ke atas (Bonus 2): node bulat bernomor (selesai teal + bintang, aktif amber + "KAMU DI SINI", terkunci redup + gembok), jalur solid/putus-putus, foto kampus & logo di sisi jalur (tap foto → Galeri); auto-scroll ke node aktif. Semua posisi dihitung dari lebar layar |
-| `/collection` | Kampus — Kenali BINUS @Bekasi | Halaman scroll: (1) video profil SoCS — poster + play, kontrol tap & progress bar; teks tentang SoCS/CSSE (akreditasi A BAN-PT, AUN-QA, ASIIN, QS 2024 351–400), (2) Kenapa CSSE: 3 kartu, (3) perjalanan akademik 4 tahun — timeline expandable, (4) foto fasilitas carousel looping (tap → viewer), (5) dosen CSSE (5 orang, foto resmi), (6) HIMTI & kehidupan mahasiswa (logo HIMTI, 4 komisi, agenda 2026, sejarah), (7) 15 fakta singkat bergulir (tap → bottom sheet + salin sumber), (8) daftar sumber |
+| `/collection` | Kampus — Kenali BINUS @Bekasi | Halaman scroll: (1) video profil SoCS — poster + play; tap = pause, double-tap kanan/kiri = ±5 detik, mute, progress tipis; teks tentang SoCS/CSSE (akreditasi A BAN-PT, AUN-QA, ASIIN, QS 2024 351–400), (2) Kenapa CSSE: 3 kartu, (3) perjalanan akademik 4 tahun — timeline expandable, (4) foto fasilitas carousel looping (tap → viewer), (5) dosen CSSE (5 orang, foto resmi; tap → pop-up profil + link resmi), (6) HIMTI & kehidupan mahasiswa (logo HIMTI, 4 komisi, agenda 2026, sejarah), (7) 15 fakta singkat bergulir (tap → bottom sheet + buka sumber), (8) daftar sumber (tap → buka di browser) |
 | `/leaderboard` | Leaderboard | Kartu posisi kamu + selisih XP ke peringkat di atas, daftar regu (dummy) |
 | `/profile` | Profil | Robot avatar besar + nama, 4 stat, badge pencapaian, pengaturan (**ganti robot avatar**, ringkasan, reset) |
 | `/room/:id` | Room screen | `id` = `RoomId.name`, mis. `/room/algorithm`. Lihat §9 |
@@ -469,13 +470,13 @@ Home, Kampus, Summary, sertifikat, dan aturan unlock otomatis mengikuti `RoomCat
 flutter test
 ```
 
-`test/registration_format_test.dart` menguji `PhoneFormat` (08/+62/62, panjang 10–13, normalisasi, tampilan), `NameFormat.validateFullName`, dan `NameFormat.validateSchool`. `test/puzzle_engine_test.dart` menguji logic murni: `ScoreCalculator` (penalti hint/salah, clamp, bintang), `CipherEngine` (shift & wrap-around), `SequenceEvaluator` (utilitas urutan). Engine sengaja dibuat tanpa dependency Flutter supaya bisa diuji tanpa widget.
+`test/registration_format_test.dart` menguji `PhoneFormat` (08/+62/62, panjang 10–13, normalisasi, tampilan), `NameFormat.validateFullName`, dan `NameFormat.validateSchool`. `test/puzzle_engine_test.dart` menguji logic murni: `ScoreCalculator` (penalti hint/salah, clamp, bintang), `CipherEngine` (shift & wrap-around). Engine sengaja dibuat tanpa dependency Flutter supaya bisa diuji tanpa widget.
 
 Checklist manual sebelum demo:
 - [ ] Landing: nama kosong / HP salah format / sekolah kosong → pesan error, tidak bisa lanjut; pilih robot → background Landing berubah; setelah Mulai, background Home/Peta/Kampus ikut warna robot; ganti robot di Profil → background ikut berubah
 - [ ] Peta: hanya Ruang 1 terbuka + pill "KAMU DI SINI"; selesaikan → garis hijau, Ruang 2 terbuka, Insight Card muncul
 - [ ] Setiap ruangan: jawaban salah → banner merah, hint 1→2→3 → skor turun 25 tiap hint baru, reset → mini-game kosong
-- [ ] Kampus: video bisa diputar/pause, di-seek, dan suaranya bisa di-mute/unmute (ikon speaker); foto dosen tampil; carousel fasilitas berputar sendiri; timeline tahun bisa dibuka-tutup; fakta bergulir, berhenti saat disentuh; tombol salin sumber bekerja
+- [ ] Kampus: video — tap = pause/lanjut, double-tap kanan/kiri = maju/mundur 5 detik (muncul label), mute/unmute; tap dosen → pop-up; carousel fasilitas berputar sendiri; timeline tahun bisa dibuka-tutup; fakta bergulir, berhenti saat disentuh; link sumber terbuka di browser
 - [ ] Peta: node bernomor + jalur berkelok, foto/logo di sisi jalur tidak menutupi label node (cek di HP kecil 360 px dan besar)
 - [ ] Ruang 1: tekan "Jalankan Robot" → robot bergerak dulu, hasil muncul setelah animasi
 - [ ] Ruang 8: posisi kartu beda tiap reset; kabel muncul saat pasangan dibuat

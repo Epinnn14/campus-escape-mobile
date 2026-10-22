@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -34,13 +35,19 @@ class _BackdropPainter extends CustomPainter {
     final h = size.height;
     final unit = w / 16; // 1 "sel" grid ≈ 27 px di layar 430 px
 
-    // 1. Grid titik.
-    final dot = Paint()..color = tint.withValues(alpha: 0.085);
+    // 1. Grid titik — satu drawPoints (bukan ratusan drawCircle) supaya
+    //    murah di-rasterisasi tiap frame.
+    final dots = <Offset>[];
     for (double y = unit / 2; y < h; y += unit) {
       for (double x = unit / 2; x < w; x += unit) {
-        canvas.drawCircle(Offset(x, y), 1.1, dot);
+        dots.add(Offset(x, y));
       }
     }
+    final dot = Paint()
+      ..color = tint.withValues(alpha: 0.085)
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPoints(ui.PointMode.points, dots, dot);
 
     // 2. Jalur sirkuit bersiku (deterministik, supaya tidak "lompat" saat rebuild).
     final rnd = math.Random(2026);

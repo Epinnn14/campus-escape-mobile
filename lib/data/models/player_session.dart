@@ -36,7 +36,6 @@ class PlayerSession {
   /// oleh [PhoneFormat.normalize]).
   final String phone;
   final int avatarIndex;
-  final List<String> members;
   final DateTime createdAt;
   final DateTime? startedAt;
   final int totalScore;
@@ -53,7 +52,6 @@ class PlayerSession {
     this.schoolOrigin = '',
     this.phone = '',
     this.avatarIndex = 0,
-    this.members = const [],
     DateTime? createdAt,
     this.startedAt,
     this.totalScore = 0,
@@ -82,7 +80,6 @@ class PlayerSession {
         'schoolOrigin': schoolOrigin,
         'phone': phone,
         'avatarIndex': avatarIndex,
-        'members': members,
         'createdAt': createdAt.toIso8601String(),
         'startedAt': startedAt?.toIso8601String(),
         'totalScore': totalScore,
@@ -96,7 +93,6 @@ class PlayerSession {
         schoolOrigin: map['schoolOrigin'] as String? ?? '',
         phone: map['phone'] as String? ?? '',
         avatarIndex: map['avatarIndex'] as int? ?? 0,
-        members: List<String>.from(map['members'] as List? ?? const []),
         createdAt: DateTime.tryParse(map['createdAt'] as String? ?? ''),
         startedAt: DateTime.tryParse(map['startedAt'] as String? ?? ''),
         totalScore: map['totalScore'] as int? ?? 0,
@@ -109,7 +105,6 @@ class PlayerSession {
     String? schoolOrigin,
     String? phone,
     int? avatarIndex,
-    List<String>? members,
     DateTime? startedAt,
     int? totalScore,
     String? eventCode,
@@ -121,7 +116,6 @@ class PlayerSession {
         schoolOrigin: schoolOrigin ?? this.schoolOrigin,
         phone: phone ?? this.phone,
         avatarIndex: avatarIndex ?? this.avatarIndex,
-        members: members ?? this.members,
         createdAt: createdAt,
         startedAt: startedAt ?? this.startedAt,
         totalScore: totalScore ?? this.totalScore,

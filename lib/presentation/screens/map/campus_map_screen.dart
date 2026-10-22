@@ -384,7 +384,7 @@ class _LogoDeco extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: AppColors.outline, width: 2),
       ),
-      child: CampusImage(asset: asset, fit: BoxFit.contain),
+      child: CampusImage(asset: asset, fit: BoxFit.contain, cacheWidth: 120),
     );
   }
 }

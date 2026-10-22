@@ -2,35 +2,6 @@ import 'package:campus_escape/domain/engines/puzzle_engine.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('SequenceEvaluator', () {
-    const answer = ['A', 'B', 'C'];
-
-    test('incomplete when a slot is empty', () {
-      expect(
-        SequenceEvaluator.check(placed: ['A', '', 'C'], answer: answer),
-        SequenceCheck.incomplete,
-      );
-    });
-
-    test('wrong when order differs', () {
-      expect(
-        SequenceEvaluator.check(placed: ['A', 'C', 'B'], answer: answer),
-        SequenceCheck.wrong,
-      );
-      expect(
-        SequenceEvaluator.firstMismatch(placed: ['A', 'C', 'B'], answer: answer),
-        1,
-      );
-    });
-
-    test('correct when identical', () {
-      expect(
-        SequenceEvaluator.check(placed: ['A', 'B', 'C'], answer: answer),
-        SequenceCheck.correct,
-      );
-    });
-  });
-
   group('ScoreCalculator', () {
     test('full score without penalties', () {
       expect(ScoreCalculator.score(hintsUsed: 0, wrongAttempts: 0, base: 200), 200);

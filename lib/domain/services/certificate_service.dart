@@ -11,7 +11,6 @@ import '../../data/models/socs_fact.dart' show BrandLogos;
 class CertificateData {
   final String name;
   final String school;
-  final List<String> members;
   final String predicate;
   final int totalScore;
   final int roomsCompleted;
@@ -26,7 +25,6 @@ class CertificateData {
   const CertificateData({
     required this.name,
     required this.school,
-    required this.members,
     required this.predicate,
     required this.totalScore,
     required this.roomsCompleted,
@@ -150,8 +148,6 @@ abstract class CertificateService {
                     pw.Text(d.name, style: pw.TextStyle(font: regular, fontSize: 30, color: _ink)),
                     if (d.school.isNotEmpty)
                       pw.Text(d.school, style: pw.TextStyle(font: regular, fontSize: 11, color: _muted)),
-                    if (d.members.isNotEmpty)
-                      pw.Text('bersama ${d.members.join(', ')}', style: pw.TextStyle(font: regular, fontSize: 9.5, color: _muted)),
                     pw.SizedBox(height: 12),
                     pw.Text(
                       'telah berhasil menyelesaikan ${d.roomsCompleted} dari ${d.roomsTotal} ruangan dengan predikat ${d.predicate}',

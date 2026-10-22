@@ -392,7 +392,7 @@ class _HeroPhoto extends StatelessWidget {
                     color: AppColors.textPrimary,
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
-                  child: const CampusImage(asset: BrandLogos.binus, fit: BoxFit.contain),
+                  child: const CampusImage(cacheWidth: 160, asset: BrandLogos.binus, fit: BoxFit.contain),
                 ),
                 const SizedBox(width: AppSpacing.xs),
                 Text('BINUS @Bekasi', style: AppTypography.titleMd),
