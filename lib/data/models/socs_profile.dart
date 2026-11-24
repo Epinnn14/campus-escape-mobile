@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Profil SoCS / CSSE BINUS @Bekasi untuk halaman "Kenali BINUS @Bekasi".
 ///

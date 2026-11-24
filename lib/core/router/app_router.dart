@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/models/room_meta.dart';
 import '../../presentation/screens/collection/collection_screen.dart';

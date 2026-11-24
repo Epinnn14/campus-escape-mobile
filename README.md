@@ -1,7 +1,7 @@
 # Campus Escape Mobile
 
-![Flutter](https://img.shields.io/badge/Flutter-3.47-02569B?logo=flutter&logoColor=white)
-![Dart](https://img.shields.io/badge/Dart-3.13-0175C2?logo=dart&logoColor=white)
+![Flutter](https://img.shields.io/badge/Flutter-3.50-02569B?logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-3.14-0175C2?logo=dart&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%2B%20Auth-FFCA28?logo=firebase&logoColor=black)
 ![Version](https://img.shields.io/badge/version-0.9.0-F5A524)
 ![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-131C2E)
@@ -12,7 +12,7 @@
 
 | | |
 |---|---|
-| **Tech stack** | Flutter 3.47 · Dart 3.13 · flutter_riverpod · go_router · Hive · Firebase (Auth anonim + Firestore) · pdf/printing (sertifikat) · video_player · share_plus |
+| **Tech stack** | Flutter 3.50 · Dart 3.14 · material_ui · flutter_riverpod · go_router · Hive · Firebase (Auth anonim + Firestore) · pdf/printing (sertifikat) · video_player · share_plus |
 | **Arsitektur** | Feature-first: `data/` (model, local, remote) → `domain/` (services) → `application/` (Riverpod providers) → `presentation/` (screens, widgets); satu `RoomScaffold` untuk 10 room |
 | **Keamanan** | Firestore Security Rules: peserta hanya menulis dokumennya sendiri, skor tidak bisa turun/melompat, no HP terpisah & hanya admin, kode acara tidak bisa di-enumerasi, admin = username + password + dokumen `admins/{uid}` |
 | **Reward** | XP per ruangan, leaderboard, pencapaian, **sertifikat PDF** otomatis dari dalam app |
@@ -95,9 +95,10 @@ Pola desain puzzle: setiap ruangan adalah **mini-game yang berbeda** dan menjadi
 
 | Layer | Teknologi | Versi | Alasan |
 |---|---|---|---|
-| Framework | **Flutter** (Dart 3) | Flutter ≥ 3.27, Dart ≥ 3.3 | Satu codebase Android/iOS/web; pakai `CardThemeData`/`DialogThemeData` (3.27+) |
+| Framework | **Flutter** (Dart 3) | Flutter ≥ 3.47, Dart ≥ 3.13 (dev & CI: 3.50.1) | Satu codebase Android/iOS/web; pakai `CardThemeData`/`DialogThemeData` (3.27+) |
 | State management | **flutter_riverpod** (`Notifier` / `NotifierProvider`) | ^2.5.1 | Provider per domain (session, progress, insight, leaderboard), mudah di-test, tanpa codegen |
-| Navigasi | **go_router** | ^14.2.0 | `ShellRoute` untuk 5 tab + route param `/room/:id`, deep-link friendly |
+| UI | **material_ui** | ^1.11.1 | Komponen Material sebagai package terpisah (pengganti `package:flutter/material.dart` yang deprecated sejak Flutter 3.50) |
+| Navigasi | **go_router** | ^18.1.4 | `ShellRoute` untuk 5 tab + route param `/room/:id`, deep-link friendly |
 | Local storage | **hive** + **hive_flutter** | ^2.2.3 / ^1.1.0 | Offline-first, cepat, disimpan sebagai `Map` biasa — tanpa TypeAdapter / build_runner |
 | Font | **google_fonts** | ^6.2.1 | Space Grotesk (judul/angka) + Manrope (body) + JetBrains Mono (kode). Di-cache setelah fetch pertama |
 | Ikon | Material Icons (bawaan Flutter) | — | DESIGN.md menyebut Lucide; dipakai Material outlined yang paling dekat supaya tanpa dependency tambahan |
@@ -118,7 +119,7 @@ Backend bersifat opsional: tanpa konfigurasi Firebase, app berjalan lokal penuh 
 
 ```bash
 # 1. Pastikan Flutter terpasang
-flutter --version          # butuh ≥ 3.27
+flutter --version          # butuh ≥ 3.47 (dikembangkan & di-build CI dengan 3.50.1)
 
 # 2. Install dependency
 flutter pub get

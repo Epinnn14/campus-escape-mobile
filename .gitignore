@@ -58,3 +58,8 @@ firebase-debug.log
 # Scratch / catatan lokal
 Claude outputs/
 catatan_flutter.txt
+
+# Cache Gradle & hasil build Android (jangan di-commit)
+.gradle/
+android/build/
+android/.gradle/

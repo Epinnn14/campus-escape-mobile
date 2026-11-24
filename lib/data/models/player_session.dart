@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 12 varian warna robot avatar (dipilih saat registrasi).
 class RobotVariant {
