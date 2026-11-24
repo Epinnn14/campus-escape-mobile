@@ -3,8 +3,8 @@
 ![Flutter](https://img.shields.io/badge/Flutter-3.50-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.14-0175C2?logo=dart&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%2B%20Auth-FFCA28?logo=firebase&logoColor=black)
-![Version](https://img.shields.io/badge/version-0.9.0-F5A524)
-![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-131C2E)
+![Version](https://img.shields.io/badge/version-0.9.1-F5A524)
+![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Web%2FPWA%20%7C%20Windows-131C2E)
 
 **Escape room di dalam genggaman.** Siswa SMA/SMK yang berkunjung ke School of Computer Science (SoCS) BINUS @Bekasi "terkunci" di kampus dan harus memecahkan **10 ruangan mini-game** — Algoritma, UI/UX, Data Science, Game Dev, Mobile Dev, Jaringan, Software Engineering, Database, lalu dua bonus AI & Cyber Security. Setiap ruangan memperkenalkan satu disiplin IT lewat bermain, bukan presentasi satu arah; selesai satu ruangan, muncul *Insight Card* yang menjelaskan apa yang baru saja mereka lakukan.
 
@@ -20,7 +20,7 @@
 
 ## Unduh & coba
 
-<img src="docs/qr_web.png" alt="QR versi web" width="140" align="right">
+<img src="docs/qr_web.png" alt="QR ke versi web Campus Escape" width="170" align="right">
 
 **Coba sekarang tanpa install (iPhone & Android):** buka **https://epinnn14.github.io/campus-escape-mobile/** di Safari/Chrome HP, atau scan QR di samping. Di iPhone: tombol *Share* → **Add to Home Screen** supaya jadi ikon app layar penuh (PWA). Versi web di-deploy otomatis dari branch `main` (`.github/workflows/web.yml`).
 
@@ -34,8 +34,10 @@ APK & .exe dibuat otomatis oleh GitHub Actions (`.github/workflows/release.yml`)
 
 > Dokumentasi lengkap: [Setup Firebase](docs/FIREBASE_SETUP.md) · [Design system](DESIGN.md) · [Master sheet](docs/Campus_Escape_Master_Sheet.xlsx) · daftar isi di bawah.
 
-**Versi:** 0.9.0 · **Status:** MVP playable — mode lokal (single-device) **atau** mode online (Firebase, multi-HP + panel admin online) · **Platform:** Android, iOS, Web (preview)
+**Versi:** 0.9.1 · **Status:** MVP playable — mode lokal (single-device) **atau** mode online (Firebase, multi-HP + panel admin online) · **Platform:** Android (APK), Web/PWA (iPhone & Android), Windows (.exe)
 
+> **Apa yang baru di 0.9.1 (Oktober–November 2026):** bisa dicoba **tanpa install** lewat versi web/PWA di GitHub Pages (QR di atas) dan sebagai **app Windows** (`CampusEscape.exe`); APK arm64 yang lebih kecil; rilis otomatis lewat GitHub Actions. Tampilan: **tekstur latar sirkuit** yang ikut warna robot, **pop-up profil dosen**, video profil dengan gesture (tap = pause, tap 2× kanan/kiri = ±5 detik, mute), dan semua link sumber **langsung terbuka di browser**. Di balik layar: migrasi ke **Flutter 3.50 + `material_ui`** (pengganti `package:flutter/material.dart` yang deprecated), `go_router` 18, toolchain Android baru (Gradle 9.5.0, AGP 9.3.1, Kotlin 2.4.20), kode mati dibersihkan (fitur regu, puzzle urutan lama), gambar thumbnail di-decode lebih hemat.
+>
 > **Apa yang baru di 0.9 — MODE ONLINE:** satu APK dibagikan admin → peserta main di HP masing-masing. Peserta masuk dengan **kode acara** (3 huruf + 3 angka, mis. `ABC321`, ditentukan admin saat membuat acara; 1 kode per kunjungan sekolah); skor tiap ruangan dikirim ke Firestore → **leaderboard acara real-time** di semua HP; **panel admin online** (ikon kunci di Landing/Home → selalu minta **username + password**, tanpa email) berisi **daftar acara** → detail acara: tutup/buka acara, pantau peserta live, atur ruangan per acara (berlaku real-time ke peserta), **tetapkan pemenang** dari leaderboard (banner muncul di semua HP), **Lihat CSV / Unduh CSV** lengkap no HP, hapus semua akun peserta setelah acara ditutup. Acara yang sudah ditutup tetap bisa dimainkan, tapi skor tidak tersimpan. Data per orang (tanpa regu), dirancang untuk ≥10.000 peserta bersamaan (leaderboard top-50 + peringkat via count aggregate). Keamanan di **Firestore Security Rules** (`firestore.rules`): peserta login anonim & hanya bisa tulis dokumennya sendiri, skor tidak bisa turun/melompat, no HP terpisah & hanya admin, kode acara tidak bisa di-enumerasi, admin harus punya dokumen `admins/{uid}`. Aktifkan dengan `flutterfire configure` (panduan lengkap: `docs/FIREBASE_SETUP.md`); tanpa itu app tetap jalan di mode lokal seperti 0.8.
 >
 > **Apa yang baru di 0.8:** **Panel Admin** (ikon kunci di Home → password saja, default `socs2026`): progres semua pemain yang pernah main di perangkat (arsip tidak terhapus saat reset), detail skor per ruangan, **tarik data** (Salin CSV ke clipboard / Bagikan PDF rekap), **atur ruangan** (aktif/nonaktif + XP dasar, urutan unlock menyesuaikan), ganti password, reset pemain aktif, hapus arsip. **Leaderboard sekarang data sungguhan** dari arsip pemain (pill "Dummy data" dihapus).
@@ -151,8 +153,8 @@ flutter build windows --release
 **Rilis otomatis (APK + .exe) ke GitHub Releases:**
 
 ```bash
-git tag v0.9.0
-git push origin v0.9.0        # Actions build keduanya, lalu lampirkan ke Releases
+git tag v0.9.1
+git push origin v0.9.1        # Actions build keduanya, lalu lampirkan ke Releases
 ```
 
 Tanpa secrets, build CI memakai `lib/firebase_options.example.dart` (mode lokal). Supaya build CI online, tambahkan secrets `FIREBASE_OPTIONS_DART_B64` dan `GOOGLE_SERVICES_JSON_B64` (isi: `base64 -w0 <file>`) di Settings → Secrets → Actions.
