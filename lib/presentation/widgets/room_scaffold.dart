@@ -33,6 +33,13 @@ class RoomCheckCorrect extends RoomCheck {
   const RoomCheckCorrect(this.message);
 }
 
+/// Satu tahap beres, ruangan belum selesai (mis. layar 1 dari 2): tampil
+/// sebagai banner info, tanpa penalti dan tanpa menyelesaikan ruangan.
+class RoomCheckProgress extends RoomCheck {
+  final String message;
+  const RoomCheckProgress(this.message);
+}
+
 /// Kerangka semua ruangan: top bar (back, nama ruang), progres tahap, kartu
 /// cerita, body puzzle, banner status, dan dock tombol (petunjuk, reset,
 /// tombol utama). Skor, hint, dan penyelesaian diurus di sini supaya tiap
@@ -109,6 +116,8 @@ class _RoomScaffoldState extends ConsumerState<RoomScaffold> {
     switch (result) {
       case RoomCheckIncomplete(:final message):
         setState(() => _banner = (BannerKind.warning, message));
+      case RoomCheckProgress(:final message):
+        setState(() => _banner = (BannerKind.info, message));
       case RoomCheckWrong(:final message):
         setState(() {
           _wrongAttempts++;

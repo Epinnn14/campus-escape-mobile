@@ -8,6 +8,7 @@ import '../../widgets/room_scaffold.dart';
 
 /// Ruang 4 — Game Development: "Lompat Tepat Waktu".
 /// Penanda bergerak bolak-balik; tekan Lompat saat penanda di zona hijau.
+/// Ada 5 level: tiap lompatan tepat, penanda bergerak makin cepat.
 /// Inilah game loop: update posisi → gambar ke layar → baca input, berulang.
 class GameDevRoomScreen extends StatefulWidget {
   const GameDevRoomScreen({super.key});
@@ -18,8 +19,11 @@ class GameDevRoomScreen extends StatefulWidget {
 
 class _GameDevRoomScreenState extends State<GameDevRoomScreen>
     with SingleTickerProviderStateMixin {
-  static const _target = 3;
+  static const _target = 5;
   static const _zoneStart = 0.40, _zoneEnd = 0.60;
+
+  /// Lama satu lintasan (ms) per level — makin kecil, makin cepat.
+  static const _sweepMs = [1100, 950, 820, 700, 600];
 
   late final AnimationController _ctrl;
   int _hits = 0;
@@ -32,8 +36,17 @@ class _GameDevRoomScreenState extends State<GameDevRoomScreen>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))
+    _ctrl = AnimationController(vsync: this, duration: Duration(milliseconds: _sweepMs.first))
       ..repeat(reverse: true);
+  }
+
+  /// Level yang sedang dimainkan (1.._target).
+  int get _level => (_hits + 1).clamp(1, _target);
+
+  /// Pakai kecepatan level saat ini; penanda lanjut dari posisinya sekarang.
+  void _applySpeed() {
+    _ctrl.duration = Duration(milliseconds: _sweepMs[_level - 1]);
+    _ctrl.repeat(reverse: true);
   }
 
   @override
@@ -50,7 +63,13 @@ class _GameDevRoomScreenState extends State<GameDevRoomScreen>
       _lastHit = hit;
       if (hit) {
         _hits++;
-        _lastFeedback = _hits >= _target ? 'Tiga kali tepat! Tekan "Selesai".' : 'Tepat! ${_target - _hits} lagi.';
+        if (_hits >= _target) {
+          _ctrl.stop();
+          _lastFeedback = 'Lima level beres! Tekan "Selesai".';
+        } else {
+          _applySpeed();
+          _lastFeedback = 'Tepat! Naik ke level $_level — penanda makin cepat.';
+        }
       } else {
         _misses++;
         _lastFeedback = pos < _zoneStart ? 'Terlalu cepat.' : 'Terlalu lambat.';
@@ -60,7 +79,7 @@ class _GameDevRoomScreenState extends State<GameDevRoomScreen>
 
   RoomCheck _check() {
     if (_hits < _target) {
-      return RoomCheckIncomplete('Butuh $_target lompatan tepat di zona hijau. Sekarang baru $_hits.');
+      return RoomCheckIncomplete('Selesaikan $_target level dulu (1 lompatan tepat per level). Sekarang baru $_hits.');
     }
     return const RoomCheckCorrect('Mantap! Timing pas = game terasa responsif.');
   }
@@ -69,6 +88,7 @@ class _GameDevRoomScreenState extends State<GameDevRoomScreen>
         _hits = 0;
         _misses = 0;
         _lastFeedback = null;
+        _applySpeed();
       });
 
   @override
@@ -78,9 +98,9 @@ class _GameDevRoomScreenState extends State<GameDevRoomScreen>
       storyLead: 'Karakter game-nya harus melompati jurang.',
       storyBody:
           'Penanda bergerak bolak-balik. Tekan "Lompat!" tepat saat penanda '
-          'berada di zona hijau. Berhasil $_target kali untuk membuka pintu.',
+          'berada di zona hijau. Ada $_target level: tiap berhasil, penanda makin cepat.',
       hints: const [
-        'Perhatikan ritmenya dulu beberapa detik tanpa menekan apa-apa. Penanda bergerak dengan kecepatan tetap.',
+        'Perhatikan ritmenya dulu beberapa detik tanpa menekan apa-apa. Kecepatan naik tiap level, jadi amati lagi ritmenya setiap kali berhasil.',
         'Tekan sedikit lebih awal dari yang kamu kira, karena jari butuh waktu untuk bereaksi.',
         'Zona hijau ada di tengah. Saat penanda bergerak dari kiri, tekan tepat ketika ujung kirinya menyentuh zona.',
       ],
@@ -94,7 +114,7 @@ class _GameDevRoomScreenState extends State<GameDevRoomScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           HelperPanel(
-            label: 'Lintasan · zona hijau = waktu yang pas',
+            label: 'Level $_level dari $_target · zona hijau = waktu yang pas',
             child: SizedBox(
               height: 72,
               child: LayoutBuilder(
@@ -181,7 +201,7 @@ class _GameDevRoomScreenState extends State<GameDevRoomScreen>
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
-              Expanded(child: StatTile(value: '$_hits/$_target', caption: 'Tepat', valueColor: AppColors.success)),
+              Expanded(child: StatTile(value: '$_hits/$_target', caption: 'Level selesai', valueColor: AppColors.success)),
               const SizedBox(width: AppSpacing.xs),
               Expanded(child: StatTile(value: '$_misses', caption: 'Meleset', valueColor: AppColors.textSecondary)),
             ],

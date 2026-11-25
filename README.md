@@ -3,7 +3,7 @@
 ![Flutter](https://img.shields.io/badge/Flutter-3.50-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.14-0175C2?logo=dart&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%2B%20Auth-FFCA28?logo=firebase&logoColor=black)
-![Version](https://img.shields.io/badge/version-0.9.1-F5A524)
+![Version](https://img.shields.io/badge/version-0.9.2-F5A524)
 ![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Web%2FPWA%20%7C%20Windows-131C2E)
 
 **Escape room di dalam genggaman.** Siswa SMA/SMK yang berkunjung ke School of Computer Science (SoCS) BINUS @Bekasi "terkunci" di kampus dan harus memecahkan **10 ruangan mini-game** — Algoritma, UI/UX, Data Science, Game Dev, Mobile Dev, Jaringan, Software Engineering, Database, lalu dua bonus AI & Cyber Security. Setiap ruangan memperkenalkan satu disiplin IT lewat bermain, bukan presentasi satu arah; selesai satu ruangan, muncul *Insight Card* yang menjelaskan apa yang baru saja mereka lakukan.
@@ -34,8 +34,12 @@ APK & .exe dibuat otomatis oleh GitHub Actions (`.github/workflows/release.yml`)
 
 > Dokumentasi lengkap: [Setup Firebase](docs/FIREBASE_SETUP.md) · [Design system](DESIGN.md) · [Master sheet](docs/Campus_Escape_Master_Sheet.xlsx) · daftar isi di bawah.
 
-**Versi:** 0.9.1 · **Status:** MVP playable — mode lokal (single-device) **atau** mode online (Firebase, multi-HP + panel admin online) · **Platform:** Android (APK), Web/PWA (iPhone & Android), Windows (.exe)
+**Versi:** 0.9.2 · **Status:** MVP playable — mode lokal (single-device) **atau** mode online (Firebase, multi-HP + panel admin online) · **Platform:** Android (APK), Web/PWA (iPhone & Android), Windows (.exe)
 
+> **Apa yang baru di 0.9.2 (25 November 2026):** kode acara **`FREE`** untuk main bebas tanpa acara (ada petunjuknya di bawah kolom kode; skor hanya tersimpan di perangkat). Ruangan: **Game Dev jadi 5 level** yang makin cepat, **Mobile Dev jadi 2 layar** (pendaftaran lalu halaman masuk) dengan komponen yang diacak, **Database jadi 12 siswa** (6 kiri, 6 kanan) dengan 5 kelas di tengah, dan **peta Jaringan** berwarna hijau kalau langkahnya benar, merah kalau salah. Teks pembuka Landing diperbarui. Rilis: build Windows diperbaiki dan APK tetap terbit walau build Windows gagal.
+>
+> **Catatan build publik:** APK/web dari GitHub hanya menampilkan kolom **Kode acara** (mode online) kalau secret `FIREBASE_OPTIONS_DART_B64` sudah diisi di repo; tanpa itu build berjalan di mode lokal.
+>
 > **Apa yang baru di 0.9.1 (Oktober–November 2026):** bisa dicoba **tanpa install** lewat versi web/PWA di GitHub Pages (QR di atas) dan sebagai **app Windows** (`CampusEscape.exe`); APK arm64 yang lebih kecil; rilis otomatis lewat GitHub Actions. Tampilan: **tekstur latar sirkuit** yang ikut warna robot, **pop-up profil dosen**, video profil dengan gesture (tap = pause, tap 2× kanan/kiri = ±5 detik, mute), dan semua link sumber **langsung terbuka di browser**. Di balik layar: migrasi ke **Flutter 3.50 + `material_ui`** (pengganti `package:flutter/material.dart` yang deprecated), `go_router` 18, toolchain Android baru (Gradle 9.5.0, AGP 9.3.1, Kotlin 2.4.20), kode mati dibersihkan (fitur regu, puzzle urutan lama), gambar thumbnail di-decode lebih hemat.
 >
 > **Apa yang baru di 0.9 — MODE ONLINE:** satu APK dibagikan admin → peserta main di HP masing-masing. Peserta masuk dengan **kode acara** (3 huruf + 3 angka, mis. `ABC321`, ditentukan admin saat membuat acara; 1 kode per kunjungan sekolah); skor tiap ruangan dikirim ke Firestore → **leaderboard acara real-time** di semua HP; **panel admin online** (ikon kunci di Landing/Home → selalu minta **username + password**, tanpa email) berisi **daftar acara** → detail acara: tutup/buka acara, pantau peserta live, atur ruangan per acara (berlaku real-time ke peserta), **tetapkan pemenang** dari leaderboard (banner muncul di semua HP), **Lihat CSV / Unduh CSV** lengkap no HP, hapus semua akun peserta setelah acara ditutup. Acara yang sudah ditutup tetap bisa dimainkan, tapi skor tidak tersimpan. Data per orang (tanpa regu), dirancang untuk ≥10.000 peserta bersamaan (leaderboard top-50 + peringkat via count aggregate). Keamanan di **Firestore Security Rules** (`firestore.rules`): peserta login anonim & hanya bisa tulis dokumennya sendiri, skor tidak bisa turun/melompat, no HP terpisah & hanya admin, kode acara tidak bisa di-enumerasi, admin harus punya dokumen `admins/{uid}`. Aktifkan dengan `flutterfire configure` (panduan lengkap: `docs/FIREBASE_SETUP.md`); tanpa itu app tetap jalan di mode lokal seperti 0.8.
@@ -153,11 +157,11 @@ flutter build windows --release
 **Rilis otomatis (APK + .exe) ke GitHub Releases:**
 
 ```bash
-git tag v0.9.1
-git push origin v0.9.1        # Actions build keduanya, lalu lampirkan ke Releases
+git tag v0.9.2
+git push origin v0.9.2        # Actions build keduanya, lalu lampirkan ke Releases
 ```
 
-Tanpa secrets, build CI memakai `lib/firebase_options.example.dart` (mode lokal). Supaya build CI online, tambahkan secrets `FIREBASE_OPTIONS_DART_B64` dan `GOOGLE_SERVICES_JSON_B64` (isi: `base64 -w0 <file>`) di Settings → Secrets → Actions.
+Tanpa secrets, build CI memakai `lib/firebase_options.example.dart` (**mode lokal: kolom Kode acara tidak muncul**). Supaya APK dari GitHub online, tambahkan secret `FIREBASE_OPTIONS_DART_B64` di Settings → Secrets and variables → Actions. Isinya base64 dari `lib/firebase_options.dart`; di PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("lib\firebase_options.dart")) | Set-Clipboard` lalu tempel. Versi web baru ikut online kalau `flutterfire configure` dijalankan ulang dengan platform `web`.
 
 **Versi web (GitHub Pages):** workflow `web.yml` build `flutter build web --release --base-href /campus-escape-mobile/` tiap push ke `main`. Sekali saja di repo: Settings → Pages → Source = **GitHub Actions**. Supaya versi web ikut online, jalankan `flutterfire configure --platforms=android,ios,web`, perbarui secret `FIREBASE_OPTIONS_DART_B64`, dan tambahkan `epinnn14.github.io` di Firebase Console → Authentication → Settings → Authorized domains.
 
@@ -406,8 +410,8 @@ Tiap ruangan adalah mini-game yang berbeda; tidak ada lagi tipe "susun urutan" g
 | 1 | **Algoritma & Logika** | Core | `#60A5FA` | **Robot Pengantar** | Susun perintah panah (maks. 8) supaya robot sampai ke tujuan di grid 4×3 tanpa menabrak tembok. Tombol utama **Jalankan Robot**: robot bergerak dulu, baru hasil (sampai / menabrak / berhenti) muncul | ↑ ↑ → → → | Algoritma = urutan perintah yang jelas untuk komputer | 200 |
 | 2 | **UI/UX Design** | Core | `#F472B6` | **Mana yang lebih enak dipakai?** | 3 ronde A/B: pilih mockup (tombol, teks, menu) yang lebih mudah dipakai | A, B, A | UI/UX = merancang supaya orang tidak bingung | 200 |
 | 3 | **Data Science** | Core | `#38BDF8` | **Sortir Data** | 6 kartu pendaftar muncul; **Simpan** yang valid, **Buang** yang rusak (umur 250, nama kosong, umur −3). Grafik muncul setelah data bersih | Simpan: Aisyah, Citra, Dion · Buang: Bima, (kosong), Eka | Data harus dibersihkan dulu sebelum dibaca | 200 |
-| 4 | **Game Development** | Core | `#E879F9` | **Lompat Tepat Waktu** | Penanda bergerak bolak-balik; tekan **Lompat** saat berada di zona hijau, 3× berhasil | 3 kali tepat (zona 40–60%) | Game = loop input → update → render, timing itu kuncinya | 200 |
-| 5 | **Mobile App Development** | Core | `#A3E635` | **Rakit Layar Aplikasi** | Tap 4 bagian (judul, gambar, teks, tombol) ke dalam bingkai HP sesuai urutan dari atas | Judul → Gambar → Teks → Tombol | Layar app disusun dari widget yang ditumpuk | 200 |
+| 4 | **Game Development** | Core | `#E879F9` | **Lompat Tepat Waktu** | Penanda bergerak bolak-balik; tekan **Lompat** saat berada di zona hijau. **5 level**, tiap berhasil penanda makin cepat (1,1 dtk → 0,6 dtk per lintasan) | 1 lompatan tepat per level, 5 level (zona 40–60%) | Game = loop input → update → render, timing itu kuncinya | 200 |
+| 5 | **Mobile App Development** | Core | `#A3E635` | **Rakit Layar Aplikasi** | **2 layar** bergantian; tap 4 komponen ke dalam bingkai HP sesuai urutan dari atas. Komponen di bawah **diacak** tiap layar | Layar 1: Judul → Gambar → Keterangan → Tombol "Daftar" · Layar 2: Judul "Masuk" → Kolom nama → Kolom kata sandi → Tombol "Masuk" | Layar app disusun dari widget yang ditumpuk | 200 |
 | 6 | **Jaringan Komputer** | Core | `#FB7185` | **Antar Paket** | Tap node topologi berurutan untuk mengantar paket dari Lab ke Server; Router B mati (jebakan). Kotak yang dipilih langsung berwarna **hijau kalau langkahnya benar, merah kalau salah**. Panel penjelasan di bawah berubah tiap langkah dan jadi petunjuk halus ("Router B sedang mati") | Lab → Router A → Switch → Server | Data lewat beberapa perangkat sebelum sampai | 200 |
 | 7 | **Software Engineering** | Core | `#818CF8` | **Cari Bug** | 6 baris pseudo-code kelulusan; tap baris yang salah lalu pilih perbaikannya | Baris 3 `jika nilai < batas_lulus` → ganti `>=` | Software engineer membaca kode & memperbaiki bug | 200 |
 | 8 | **Database Systems** | Core | `#FACC15` | **Cocokkan Data** | Sambungkan kabel dari 12 siswa (6 di kiri, 6 di kanan) ke 5 kelas di tengah lewat nomor `kelas_id` ↔ `id`; kabel melengkung digambar antar kartu; posisi kartu **diacak** tiap buka/reset | X IPA 1 (10): Aisyah, Dion, Kirana · X IPA 2 (11): Bima, Indah · X IPS 1 (12): Citra, Gita, Lutfi · XI IPA 1 (13): Eka, Joko · XI IPS 2 (14): Fajar, Hadi | Database menyimpan data di tabel yang saling terhubung | 200 |
