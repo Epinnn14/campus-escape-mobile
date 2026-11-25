@@ -114,6 +114,14 @@ abstract class EventCodeFormat {
   static const String digits = '0123456789';
   static final _valid = RegExp(r'^[A-Z]{3}[0-9]{3}$');
 
+  /// Kode khusus "main bebas": peserta tanpa acara cukup mengetik FREE.
+  /// Bukan acara di server — sesi berjalan lokal (skor hanya di perangkat).
+  /// Tidak bisa bentrok dengan kode acara sungguhan karena formatnya beda
+  /// (4 huruf), dan [isValid] tetap menolaknya saat admin membuat acara.
+  static const String freePlay = 'FREE';
+
+  static bool isFreePlay(String raw) => normalize(raw) == freePlay;
+
   static String normalize(String raw) {
     final v = raw.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
     if (v.length != length) return v;
@@ -126,7 +134,8 @@ abstract class EventCodeFormat {
 
   static String? validate(String? raw) {
     final v = normalize(raw ?? '');
-    if (v.isEmpty) return 'Kode acara wajib diisi';
+    if (v.isEmpty) return 'Kode acara wajib diisi (tanpa acara: ketik FREE)';
+    if (v == freePlay) return null;
     if (v.length != length) return 'Kode acara terdiri dari 3 huruf + 3 angka, misal ABC321';
     if (!_valid.hasMatch(v)) return 'Format kode: 3 huruf lalu 3 angka, misal ABC321';
     return null;

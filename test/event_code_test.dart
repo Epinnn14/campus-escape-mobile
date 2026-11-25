@@ -31,6 +31,16 @@ void main() {
       expect(EventCodeFormat.validate('123ABC'), isNotNull);
       expect(EventCodeFormat.validate('ABCDEF'), isNotNull);
     });
+
+    test('FREE = main bebas: lolos validasi form, tapi bukan kode acara', () {
+      expect(EventCodeFormat.validate('FREE'), isNull);
+      expect(EventCodeFormat.validate(' free '), isNull);
+      expect(EventCodeFormat.isFreePlay('free'), isTrue);
+      expect(EventCodeFormat.isFreePlay('ABC321'), isFalse);
+      expect(EventCodeFormat.isFreePlay('FREE12'), isFalse);
+      // Admin tidak bisa membuat acara berkode FREE.
+      expect(EventCodeFormat.isValid('FREE'), isFalse);
+    });
   });
 
   group('AdminUsername', () {

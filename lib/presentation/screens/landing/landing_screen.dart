@@ -63,7 +63,13 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
 
     var eventCode = '';
     var uid = '';
-    if (online) {
+    // Kode FREE = main bebas tanpa acara: sesi lokal, tidak menyentuh server
+    // (jalan walau tanpa internet); skor hanya tersimpan di perangkat ini.
+    final freePlay = online && EventCodeFormat.isFreePlay(_codeCtrl.text);
+    if (freePlay) {
+      _snack('Mode main bebas: skor hanya tersimpan di HP ini, tidak masuk leaderboard acara.');
+    }
+    if (online && !freePlay) {
       // Mode online: kode acara wajib valid & aktif, lalu login anonim
       // dengan UID BARU supaya pemain sebelumnya di HP ini tidak tertimpa.
       setState(() {
@@ -168,9 +174,9 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Main ${RoomCatalog.all.length} mini-game seru dan kenalan dengan dunia '
-                  'Software Engineering & Computer Science. Santai, tanpa batas waktu, '
-                  'cocok untuk siswa maupun orang tua.',
+                  'Main ${RoomCatalog.all.length} mini-game seru seputar Software Engineering & '
+                  'Computer Science. Santai, tanpa batas waktu. '
+                  'Ayo berkenalan dengan dunia software!',
                   style: AppTypography.bodyLg.copyWith(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -245,7 +251,31 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                     },
                     validator: EventCodeFormat.validate,
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  // Tanpa acara? Tap baris ini → kolom terisi FREE (main bebas).
+                  InkWell(
+                    onTap: () {
+                      _codeCtrl.text = EventCodeFormat.freePlay;
+                      if (_codeError != null) setState(() => _codeError = null);
+                    },
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
+                      child: Text.rich(
+                        TextSpan(
+                          text: 'Belum punya kode acara? Gunakan ',
+                          children: [
+                            TextSpan(
+                              text: EventCodeFormat.freePlay,
+                              style: AppTypography.caption.copyWith(color: AppColors.accent, fontWeight: FontWeight.w800),
+                            ),
+                            const TextSpan(text: ' untuk mencoba bermain.'),
+                          ],
+                        ),
+                        style: AppTypography.caption,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
                 ],
                 const _FieldLabel('Nama lengkap'),
                 TextFormField(

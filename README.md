@@ -8,7 +8,7 @@
 
 **Escape room di dalam genggaman.** Siswa SMA/SMK yang berkunjung ke School of Computer Science (SoCS) BINUS @Bekasi "terkunci" di kampus dan harus memecahkan **10 ruangan mini-game** — Algoritma, UI/UX, Data Science, Game Dev, Mobile Dev, Jaringan, Software Engineering, Database, lalu dua bonus AI & Cyber Security. Setiap ruangan memperkenalkan satu disiplin IT lewat bermain, bukan presentasi satu arah; selesai satu ruangan, muncul *Insight Card* yang menjelaskan apa yang baru saja mereka lakukan.
 
-**Cara kerjanya di hari kunjungan:** admin membuat **kode acara** (3 huruf + 3 angka, mis. `ABC321`) dari panel admin, peserta memasang satu APK, daftar dengan nama, no HP, asal sekolah, dan robot avatar, lalu bermain di HP masing-masing. Skor tiap ruangan masuk ke Firestore, **leaderboard acara tampil real-time** di semua HP, admin memantau peserta live, mengatur ruangan yang aktif, menetapkan pemenang, dan mengekspor data ke CSV. Tanpa konfigurasi Firebase, app tetap berjalan penuh dalam **mode lokal** (single device, Hive).
+**Cara kerjanya di hari kunjungan:** admin membuat **kode acara** (3 huruf + 3 angka, mis. `ABC321`) dari panel admin, peserta memasang satu APK, daftar dengan nama, no HP, asal sekolah, dan robot avatar, lalu bermain di HP masing-masing. Skor tiap ruangan masuk ke Firestore, **leaderboard acara tampil real-time** di semua HP, admin memantau peserta live, mengatur ruangan yang aktif, menetapkan pemenang, dan mengekspor data ke CSV. Yang mau mencoba **tanpa acara** cukup mengetik kode **`FREE`**: main bebas, skor hanya tersimpan di perangkat. Tanpa konfigurasi Firebase, app tetap berjalan penuh dalam **mode lokal** (single device, Hive).
 
 | | |
 |---|---|
@@ -22,7 +22,7 @@
 
 <img src="docs/qr_web.png" alt="QR ke versi web Campus Escape" width="170" align="right">
 
-**Coba sekarang tanpa install (iPhone & Android):** buka **https://epinnn14.github.io/campus-escape-mobile/** di Safari/Chrome HP, atau scan QR di samping. Di iPhone: tombol *Share* → **Add to Home Screen** supaya jadi ikon app layar penuh (PWA). Versi web di-deploy otomatis dari branch `main` (`.github/workflows/web.yml`).
+**Coba sekarang tanpa install (iPhone & Android):** buka **https://epinnn14.github.io/campus-escape-mobile/** di Safari/Chrome HP, atau scan QR di samping. Kalau diminta kode acara dan kamu tidak sedang ikut kunjungan, isi **`FREE`** (main bebas). Di iPhone: tombol *Share* → **Add to Home Screen** supaya jadi ikon app layar penuh (PWA). Versi web di-deploy otomatis dari branch `main` (`.github/workflows/web.yml`).
 
 | Platform | Cara |
 |---|---|
