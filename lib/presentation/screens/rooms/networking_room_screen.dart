@@ -51,7 +51,7 @@ class _NetworkingRoomScreenState extends State<NetworkingRoomScreen> {
         icon: Icons.router_outlined,
         title: 'Berikutnya: router',
         body: 'Router adalah polisi lalu lintas yang menentukan ke mana paket diteruskan. Ada dua router — perhatikan lampunya: hijau artinya hidup, merah artinya mati. Paket tidak bisa lewat alat yang mati.',
-        color: _meta.accent,
+        color: AppColors.success,
       );
     }
     if (last == 'Router B') {
@@ -120,7 +120,7 @@ class _NetworkingRoomScreenState extends State<NetworkingRoomScreen> {
         children: [
           HelperPanel(
             label: 'Peta jaringan kampus',
-            child: _Topology(path: _path, accent: _meta.accent, onTap: _tap),
+            child: _Topology(path: _path, answer: _answer, onTap: _tap),
           ),
           const SizedBox(height: AppSpacing.sm),
           SurfaceCard(
@@ -178,13 +178,28 @@ class _NetworkingRoomScreenState extends State<NetworkingRoomScreen> {
 
 class _Topology extends StatelessWidget {
   final List<String> path;
-  final Color accent;
+  final List<String> answer;
   final ValueChanged<String> onTap;
-  const _Topology({required this.path, required this.accent, required this.onTap});
+  const _Topology({required this.path, required this.answer, required this.onTap});
 
   bool _linked(String a, String b) {
     final ia = path.indexOf(a), ib = path.indexOf(b);
     return ia != -1 && ib == ia + 1;
+  }
+
+  /// Langkah ini benar kalau alatnya ada di posisi yang sama dengan rute
+  /// jawaban. Benar = hijau, salah = merah — supaya warna tidak membingungkan.
+  bool _correct(String name) {
+    final i = path.indexOf(name);
+    return i != -1 && i < answer.length && answer[i] == name;
+  }
+
+  /// Warna penghubung yang sedang dilewati: hijau kalau kedua ujungnya benar.
+  Color _edgeColor(List<(String, String)> links) {
+    for (final (a, b) in links) {
+      if (_linked(a, b)) return _correct(a) && _correct(b) ? AppColors.success : AppColors.danger;
+    }
+    return AppColors.outline;
   }
 
   @override
@@ -199,20 +214,20 @@ class _Topology extends StatelessWidget {
             up: up,
             width: nodeW,
             order: path.contains(name) ? path.indexOf(name) + 1 : null,
-            accent: accent,
+            tone: _correct(name) ? AppColors.success : AppColors.danger,
             onTap: () => onTap(name),
           );
-      Widget edge({bool vertical = false, bool active = false}) => Container(
+      Widget edge({bool vertical = false, Color color = AppColors.outline}) => Container(
             width: vertical ? 2 : edgeW,
             height: vertical ? 16 : 2,
-            color: active ? accent : AppColors.outline,
+            color: color,
           );
 
       return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         node('Lab', Icons.computer_outlined),
-        edge(active: _linked('Lab', 'Router A') || _linked('Lab', 'Router B')),
+        edge(color: _edgeColor(const [('Lab', 'Router A'), ('Lab', 'Router B')])),
         Column(
           children: [
             node('Router A', Icons.router_outlined, up: true),
@@ -220,9 +235,9 @@ class _Topology extends StatelessWidget {
             node('Router B', Icons.router_outlined, up: false),
           ],
         ),
-        edge(active: _linked('Router A', 'Switch') || _linked('Router B', 'Switch')),
+        edge(color: _edgeColor(const [('Router A', 'Switch'), ('Router B', 'Switch')])),
         node('Switch', Icons.device_hub_outlined),
-        edge(active: _linked('Switch', 'Server')),
+        edge(color: _edgeColor(const [('Switch', 'Server')])),
         node('Server', Icons.dns_outlined),
       ],
     );
@@ -236,9 +251,11 @@ class _NetNode extends StatelessWidget {
   final bool? up;
   final int? order;
   final double width;
-  final Color accent;
+
+  /// Warna saat dipilih: hijau (langkah benar) atau merah (langkah salah).
+  final Color tone;
   final VoidCallback onTap;
-  const _NetNode({required this.name, required this.icon, required this.up, required this.width, required this.order, required this.accent, required this.onTap});
+  const _NetNode({required this.name, required this.icon, required this.up, required this.width, required this.order, required this.tone, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -248,7 +265,7 @@ class _NetNode extends StatelessWidget {
       color: selected ? AppColors.surfaceRaised : AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.sm),
-        side: BorderSide(color: selected ? accent : AppColors.outline, width: selected ? 1.5 : 1),
+        side: BorderSide(color: selected ? tone : AppColors.outline, width: selected ? 1.5 : 1),
       ),
       child: InkWell(
         onTap: onTap,
@@ -262,7 +279,7 @@ class _NetNode extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(icon, size: 22, color: down ? AppColors.textDisabled : (selected ? accent : AppColors.textSecondary)),
+                    Icon(icon, size: 22, color: selected ? tone : (down ? AppColors.textDisabled : AppColors.textSecondary)),
                     const SizedBox(height: 3),
                     Text(name, style: AppTypography.captionXs.copyWith(fontSize: 9), maxLines: 1),
                     if (up != null)
@@ -289,7 +306,7 @@ class _NetNode extends StatelessWidget {
                     width: 16,
                     height: 16,
                     alignment: Alignment.center,
-                    decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: tone, shape: BoxShape.circle),
                     child: Text('$order', style: AppTypography.labelBadge.copyWith(fontSize: 9, color: AppColors.onAccent)),
                   ),
                 ),
