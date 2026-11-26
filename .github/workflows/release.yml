@@ -71,7 +71,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: CampusEscape-*-android.apk
+          path: CampusEscape-*.apk
 
   windows:
     name: Windows .exe
