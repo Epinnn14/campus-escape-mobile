@@ -220,9 +220,10 @@ abstract class RoomCatalog {
       mechanic: 'Pecahkan Sandi',
       insightTitle: 'Keamanan itu kebiasaan',
       insightBody:
-          'Enkripsi (menyandikan pesan) dan password kuat adalah lapis pertahanan '
-          'paling dasar. Cyber Security Engineer berpikir seperti penyerang untuk '
-          'menutup celah lebih dulu, dan mengingatkan kita untuk tidak memakai "password123".',
+          'Enkripsi (menyandikan pesan), password kuat, dan waspada pada pesan jebakan '
+          '(phishing) adalah lapis pertahanan paling dasar. Cyber Security Engineer berpikir '
+          'seperti penyerang untuk menutup celah lebih dulu, dan mengingatkan kita untuk '
+          'tidak memakai "password123" atau membagikan kode OTP.',
     ),
   ];
 

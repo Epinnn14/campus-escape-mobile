@@ -15,6 +15,8 @@ import '../../widgets/room_scaffold.dart';
 /// Jarak gesernya diacak tiap kali ruangan dibuka (1–10), jadi pemain harus
 /// benar-benar mencoba, bukan menghafal angka. Maksimal 10 putaran.
 /// Tahap 2: pilih password yang paling aman.
+/// Tahap 3: "Tangkap pesan jebakan" — nilai 4 pesan masuk, mana yang aman dan
+/// mana yang phishing. Urutan pesan diacak tiap kali ruangan dibuka.
 class CyberSecurityRoomScreen extends StatefulWidget {
   const CyberSecurityRoomScreen({super.key});
 
@@ -22,16 +24,51 @@ class CyberSecurityRoomScreen extends StatefulWidget {
   State<CyberSecurityRoomScreen> createState() => _CyberSecurityRoomScreenState();
 }
 
+/// Satu pesan masuk di tahap 3.
+class _Inbox {
+  final String from;
+  final String text;
+  final bool phishing;
+  const _Inbox(this.from, this.text, {required this.phishing});
+}
+
 class _CyberSecurityRoomScreenState extends State<CyberSecurityRoomScreen> {
   static const _plainText = 'BINUS';
   static const _maxShift = 10;
   static const _passwords = ['binus123', 'Kampus@Bekasi#2026', 'password'];
   static const _passwordCorrect = 1;
+  static const _inbox = [
+    _Inbox(
+      'Undian Kampus',
+      'Selamat, kamu menang iPhone! Klaim sekarang di binus-hadiah.xyz dan masukkan password-mu.',
+      phishing: true,
+    ),
+    _Inbox(
+      'Dosen Algoritma',
+      'Pengingat: kelas besok pindah ke Lab 3 lantai 2. Sampai jumpa jam 9.',
+      phishing: false,
+    ),
+    _Inbox(
+      'Admin (nomor tak dikenal)',
+      'Akunmu akan DIBLOKIR dalam 5 menit! Segera balas pesan ini dengan kode OTP yang baru masuk.',
+      phishing: true,
+    ),
+    _Inbox(
+      'Perpustakaan',
+      'Buku yang kamu pinjam jatuh tempo hari Jumat. Kembalikan di meja depan ya.',
+      phishing: false,
+    ),
+  ];
 
   late int _secretShift;
   late String _cipherText;
   int _shift = 0;
   int? _password;
+
+  /// Urutan tampil pesan (indeks ke [_inbox]) dan penilaian pemain per pesan:
+  /// true = jebakan, false = aman, null = belum dinilai.
+  late List<int> _inboxOrder;
+  final Map<int, bool> _verdicts = {};
 
   RoomMeta get _meta => RoomCatalog.byId(RoomId.bonusCyber);
   String get _decoded => CipherEngine.decode(_cipherText, _shift);
@@ -43,12 +80,15 @@ class _CyberSecurityRoomScreenState extends State<CyberSecurityRoomScreen> {
     _newSecret();
   }
 
-  /// Pilih jarak geser acak 1..10 dan sandikan kata rahasianya.
+  /// Pilih jarak geser acak 1..10, sandikan kata rahasianya, acak urutan pesan.
   void _newSecret() {
-    _secretShift = 1 + Random().nextInt(_maxShift);
+    final rnd = Random();
+    _secretShift = 1 + rnd.nextInt(_maxShift);
     _cipherText = CipherEngine.shift(_plainText, _secretShift);
     _shift = 0;
     _password = null;
+    _inboxOrder = List.generate(_inbox.length, (i) => i)..shuffle(rnd);
+    _verdicts.clear();
   }
 
   RoomCheck _check() {
@@ -59,25 +99,38 @@ class _CyberSecurityRoomScreenState extends State<CyberSecurityRoomScreen> {
     if (_password != _passwordCorrect) {
       return const RoomCheckWrong('Password itu gampang ditebak. Yang aman: panjang, campur huruf besar-kecil, angka, dan simbol.');
     }
-    return const RoomCheckCorrect('Brankas terbuka! Kampus aman di tanganmu.');
+    if (_verdicts.length < _inbox.length) {
+      return RoomCheckIncomplete('Password aman! Tinggal tahap 3: masih ${_inbox.length - _verdicts.length} pesan yang belum kamu nilai.');
+    }
+    var wrong = 0;
+    for (var i = 0; i < _inbox.length; i++) {
+      if (_verdicts[i] != _inbox[i].phishing) wrong++;
+    }
+    if (wrong > 0) {
+      return RoomCheckWrong(
+        '$wrong pesan salah kamu nilai. Ciri jebakan: minta password atau kode OTP, mengancam dan terburu-buru, atau memakai link yang bukan alamat resmi.',
+      );
+    }
+    return const RoomCheckCorrect('Brankas terbuka! Sandi terpecahkan, password kuat, jebakan terdeteksi — kampus aman di tanganmu.');
   }
 
   @override
   Widget build(BuildContext context) {
+    final passwordPicked = _password != null;
     return RoomScaffold(
       meta: _meta,
       storyLead: 'Ini pintu terakhir.',
       storyBody:
-          'Pesan rahasia dari panitia tersandi. Geser hurufnya sampai terbaca, '
-          'lalu pilih password yang paling aman untuk mengunci brankas.',
+          'Pesan rahasia dari admin tersandi. Geser hurufnya sampai terbaca, pilih password '
+          'paling aman untuk mengunci brankas, lalu tangkap pesan jebakan yang mengincar akunmu.',
       hints: const [
         'Sandi Caesar menggeser setiap huruf dengan jarak yang sama. Coba naikkan angkanya satu per satu (maksimal 10) dan lihat kotak hasilnya.',
-        'Kata rahasianya adalah nama kampus tempat kamu berada sekarang, 5 huruf. Jarak gesernya berbeda tiap kali ruangan dibuka.',
-        'Perhatikan huruf pertama: geser sampai huruf pertamanya jadi "B", sisanya otomatis terbaca. Password paling aman adalah yang panjang dan ada simbolnya.',
+        'Kata rahasianya adalah nama kampus tempat kamu berada sekarang, 5 huruf: geser sampai huruf pertamanya jadi "B". Password paling aman adalah yang panjang dan ada simbolnya.',
+        'Pesan jebakan (phishing) biasanya meminta password atau kode OTP, mengancam supaya kamu terburu-buru, atau memberi link yang bukan alamat resmi. Dua dari empat pesan adalah jebakan.',
       ],
       modeLabel: 'Tap − / +',
-      stageCount: 2,
-      stagesDone: _cipherSolved ? 1 : 0,
+      stageCount: 3,
+      stagesDone: (_cipherSolved ? 1 : 0) + (passwordPicked ? 1 : 0),
       checkLabel: 'Buka Brankas',
       onCheck: _check,
       onReset: () => setState(_newSecret),
@@ -149,35 +202,174 @@ class _CyberSecurityRoomScreenState extends State<CyberSecurityRoomScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Opacity(
-            opacity: _cipherSolved ? 1 : 0.5,
-            child: IgnorePointer(
-              ignoring: !_cipherSolved,
-              child: ChoiceTask(
-                question: 'Tahap 2 · Password mana yang paling aman?',
-                options: _passwords,
-                selected: _password,
-                accent: _meta.accent,
-                onSelect: (i) => setState(() => _password = i),
-              ),
+          _Locked(
+            locked: !_cipherSolved,
+            child: ChoiceTask(
+              question: 'Tahap 2 · Password mana yang paling aman?',
+              options: _passwords,
+              selected: _password,
+              accent: _meta.accent,
+              onSelect: (i) => setState(() => _password = i),
             ),
           ),
           if (!_cipherSolved) ...[
             const SizedBox(height: AppSpacing.xs),
             Text('Tahap 2 terbuka setelah sandi terpecahkan.', style: AppTypography.captionXs),
           ],
+          const SizedBox(height: AppSpacing.lg),
+          _Locked(
+            locked: !passwordPicked,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionLabel('Tahap 3 · Tangkap pesan jebakan'),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  'Empat pesan masuk ke HP-mu. Tandai mana yang aman dan mana yang jebakan (phishing).',
+                  style: AppTypography.caption,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                for (final i in _inboxOrder) ...[
+                  _InboxCard(
+                    message: _inbox[i],
+                    verdict: _verdicts[i],
+                    accent: _meta.accent,
+                    onVerdict: (v) => setState(() => _verdicts[i] = v),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                ],
+              ],
+            ),
+          ),
+          if (!passwordPicked)
+            Text('Tahap 3 terbuka setelah kamu memilih password.', style: AppTypography.captionXs),
           const SizedBox(height: AppSpacing.md),
           SurfaceCard(
             color: AppColors.surfaceDim,
             borderColor: AppColors.outlineSubtle,
             padding: const EdgeInsets.all(AppSpacing.sm),
             child: Text(
-              'Enkripsi (menyandikan pesan) dan password kuat adalah dua lapis pertahanan paling dasar. '
+              'Enkripsi (menyandikan pesan), password kuat, dan waspada terhadap pesan jebakan adalah tiga pertahanan paling dasar. '
               'Cyber Security Engineer berpikir seperti penyerang untuk menutup celah lebih dulu.',
               style: AppTypography.caption,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Meredupkan dan menonaktifkan tahap yang belum terbuka.
+class _Locked extends StatelessWidget {
+  final bool locked;
+  final Widget child;
+  const _Locked({required this.locked, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: locked ? 0.5 : 1,
+      child: IgnorePointer(ignoring: locked, child: child),
+    );
+  }
+}
+
+/// Kartu satu pesan masuk + dua tombol penilaian (Aman / Jebakan).
+class _InboxCard extends StatelessWidget {
+  final _Inbox message;
+  final bool? verdict;
+  final Color accent;
+  final ValueChanged<bool> onVerdict;
+  const _InboxCard({required this.message, required this.verdict, required this.accent, required this.onVerdict});
+
+  @override
+  Widget build(BuildContext context) {
+    return SurfaceCard(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      borderColor: verdict == null ? AppColors.outline : accent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.sms_outlined, size: 16, color: AppColors.textMuted),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  message.from,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.bodySm.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(message.text, style: AppTypography.bodyMd),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: [
+              Expanded(
+                child: _VerdictButton(
+                  label: 'Aman',
+                  icon: Icons.gpp_good_outlined,
+                  selected: verdict == false,
+                  accent: accent,
+                  onTap: () => onVerdict(false),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: _VerdictButton(
+                  label: 'Jebakan',
+                  icon: Icons.gpp_bad_outlined,
+                  selected: verdict == true,
+                  accent: accent,
+                  onTap: () => onVerdict(true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VerdictButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final Color accent;
+  final VoidCallback onTap;
+  const _VerdictButton({required this.label, required this.icon, required this.selected, required this.accent, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? AppColors.surfaceRaised : AppColors.surfaceDim,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        side: BorderSide(color: selected ? accent : AppColors.outline, width: selected ? 1.5 : 1),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        child: SizedBox(
+          height: 44,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: selected ? accent : AppColors.textSecondary),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: AppTypography.labelButtonSm.copyWith(color: selected ? AppColors.textPrimary : AppColors.textSecondary),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

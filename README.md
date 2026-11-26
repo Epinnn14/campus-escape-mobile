@@ -3,7 +3,7 @@
 ![Flutter](https://img.shields.io/badge/Flutter-3.50-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.14-0175C2?logo=dart&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%2B%20Auth-FFCA28?logo=firebase&logoColor=black)
-![Version](https://img.shields.io/badge/version-0.9.2-F5A524)
+![Version](https://img.shields.io/badge/version-0.9.3-F5A524)
 ![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Web%2FPWA%20%7C%20Windows-131C2E)
 
 **Escape room di dalam genggaman.** Siswa SMA/SMK yang berkunjung ke School of Computer Science (SoCS) BINUS @Bekasi "terkunci" di kampus dan harus memecahkan **10 ruangan mini-game** — Algoritma, UI/UX, Data Science, Game Dev, Mobile Dev, Jaringan, Software Engineering, Database, lalu dua bonus AI & Cyber Security. Setiap ruangan memperkenalkan satu disiplin IT lewat bermain, bukan presentasi satu arah; selesai satu ruangan, muncul *Insight Card* yang menjelaskan apa yang baru saja mereka lakukan.
@@ -34,8 +34,10 @@ APK & .exe dibuat otomatis oleh GitHub Actions (`.github/workflows/release.yml`)
 
 > Dokumentasi lengkap: [Setup Firebase](docs/FIREBASE_SETUP.md) · [Design system](DESIGN.md) · [Master sheet](docs/Campus_Escape_Master_Sheet.xlsx) · daftar isi di bawah.
 
-**Versi:** 0.9.2 · **Status:** MVP playable — mode lokal (single-device) **atau** mode online (Firebase, multi-HP + panel admin online) · **Platform:** Android (APK), Web/PWA (iPhone & Android), Windows (.exe)
+**Versi:** 0.9.3 · **Status:** MVP playable — mode lokal (single-device) **atau** mode online (Firebase, multi-HP + panel admin online) · **Platform:** Android (APK), Web/PWA (iPhone & Android), Windows (.exe)
 
+> **Apa yang baru di 0.9.3 (26 November 2026):** **Ruang 9 (AI)** kini 15 contoh latih + 15 contoh uji dengan **6 hewan** (tambah Bebek); di tahap Uji **AI menebak lebih dulu** berdasarkan hasil latihanmu, lalu kamu memeriksa dan membetulkan tebakannya (lulus ≥ 12/15). **Ruang 10 (Cyber)** dapat tahap ke-3 **"Tangkap pesan jebakan"**: menilai 4 pesan masuk, mana yang aman dan mana phishing. **Ikon app baru** dari emblem logo School of Computer Science (Android, web/PWA, iOS, macOS, Windows). `tool/contoh_sertifikat.dart` membuat contoh sertifikat PDF untuk dokumentasi (`flutter test tool/contoh_sertifikat.dart` → `assets/contoh/sertifikat_contoh.pdf`, tidak ikut ke APK maupun repo). Rilis: APK arm64 ikut terlampir lagi.
+>
 > **Apa yang baru di 0.9.2 (25 November 2026):** kode acara **`FREE`** untuk main bebas tanpa acara (ada petunjuknya di bawah kolom kode; skor hanya tersimpan di perangkat). Ruangan: **Game Dev jadi 5 level** yang makin cepat, **Mobile Dev jadi 2 layar** (pendaftaran lalu halaman masuk) dengan komponen yang diacak, **Database jadi 12 siswa** (6 kiri, 6 kanan) dengan 5 kelas di tengah, dan **peta Jaringan** berwarna hijau kalau langkahnya benar, merah kalau salah. Teks pembuka Landing diperbarui. Rilis: build Windows diperbaiki dan APK tetap terbit walau build Windows gagal.
 >
 > **Catatan build publik:** APK/web dari GitHub hanya menampilkan kolom **Kode acara** (mode online) kalau secret `FIREBASE_OPTIONS_DART_B64` sudah diisi di repo; tanpa itu build berjalan di mode lokal.
@@ -157,8 +159,8 @@ flutter build windows --release
 **Rilis otomatis (APK + .exe) ke GitHub Releases:**
 
 ```bash
-git tag v0.9.2
-git push origin v0.9.2        # Actions build keduanya, lalu lampirkan ke Releases
+git tag v0.9.3
+git push origin v0.9.3        # Actions build keduanya, lalu lampirkan ke Releases
 ```
 
 Tanpa secrets, build CI memakai `lib/firebase_options.example.dart` (**mode lokal: kolom Kode acara tidak muncul**). Supaya APK dari GitHub online, tambahkan secret `FIREBASE_OPTIONS_DART_B64` di Settings → Secrets and variables → Actions. Isinya base64 dari `lib/firebase_options.dart`; di PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("lib\firebase_options.dart")) | Set-Clipboard` lalu tempel. Versi web baru ikut online kalau `flutterfire configure` dijalankan ulang dengan platform `web`.
@@ -267,13 +269,14 @@ campus_escape/
 │               ├── ai_lab_room_screen.dart
 │               └── cyber_security_room_screen.dart
 ├── assets/images/gallery/         # campus_hero(.jpg/_wide.jpg) gedung BINUS @Bekasi + campus_01..05.jpg fasilitas
-├── assets/images/logos/           # binus.png, himti.png (logo resmi)
+├── assets/images/logos/           # binus.png, himti.png, socs.png, binus_socs.png (logo resmi; binus_socs = sumber ikon app)
 ├── assets/images/lecturers/       # dosen_01..05.jpg (foto resmi dari binus.ac.id/bekasi/csse)
 ├── assets/video/                  # socs_profile.mp4 (+ poster) — video profil SoCS
 ├── firestore.rules                # Security Rules Firestore (anti-cheat, privasi no HP, admin)
 ├── firebase.json                  # menunjuk ke firestore.rules untuk `firebase deploy`
 ├── docs/Campus_Escape_Master_Sheet.xlsx
 ├── docs/FIREBASE_SETUP.md         # panduan mode online langkah demi langkah
+├── tool/contoh_sertifikat.dart    # `flutter test tool/contoh_sertifikat.dart` → assets/contoh/sertifikat_contoh.pdf (contoh, tidak ikut APK)
 └── test/
     ├── puzzle_engine_test.dart
     ├── registration_format_test.dart
@@ -415,8 +418,8 @@ Tiap ruangan adalah mini-game yang berbeda; tidak ada lagi tipe "susun urutan" g
 | 6 | **Jaringan Komputer** | Core | `#FB7185` | **Antar Paket** | Tap node topologi berurutan untuk mengantar paket dari Lab ke Server; Router B mati (jebakan). Kotak yang dipilih langsung berwarna **hijau kalau langkahnya benar, merah kalau salah**. Panel penjelasan di bawah berubah tiap langkah dan jadi petunjuk halus ("Router B sedang mati") | Lab → Router A → Switch → Server | Data lewat beberapa perangkat sebelum sampai | 200 |
 | 7 | **Software Engineering** | Core | `#818CF8` | **Cari Bug** | 6 baris pseudo-code kelulusan; tap baris yang salah lalu pilih perbaikannya | Baris 3 `jika nilai < batas_lulus` → ganti `>=` | Software engineer membaca kode & memperbaiki bug | 200 |
 | 8 | **Database Systems** | Core | `#FACC15` | **Cocokkan Data** | Sambungkan kabel dari 12 siswa (6 di kiri, 6 di kanan) ke 5 kelas di tengah lewat nomor `kelas_id` ↔ `id`; kabel melengkung digambar antar kartu; posisi kartu **diacak** tiap buka/reset | X IPA 1 (10): Aisyah, Dion, Kirana · X IPA 2 (11): Bima, Indah · X IPS 1 (12): Citra, Gita, Lutfi · XI IPA 1 (13): Eka, Joko · XI IPS 2 (14): Fajar, Hadi | Database menyimpan data di tabel yang saling terhubung | 200 |
-| 9 | **AI & Machine Learning** | Bonus | `#A78BFA` | **Latih AI-mu** | 2 tahap: **Latih** 10 contoh acak (jawaban langsung dikoreksi) → **Uji** 15 contoh baru tanpa koreksi; 5 hewan (Kucing, Anjing, Burung, Ikan, Kelinci), 30 ciri di pool | Lulus jika ≥ 11/15 benar; kunci per ciri ada di master sheet | AI dilatih dengan data berlabel lalu diuji dengan data baru | 150 |
-| 10 | **Cyber Security** (Final Vault) | Bonus | `#F97316` | **Pecahkan Sandi** | Jarak geser **diacak 1–10** tiap buka/reset; geser (maks 10 putaran) sampai terbaca, lalu pilih password paling kuat | Kata rahasia selalu `BINUS` (mis. shift 3 → `ELQXV`, shift 7 → `IPUBZ`); password `Kampus@Bekasi#2026` | Sandi & password kuat melindungi data | 200 |
+| 9 | **AI & Machine Learning** | Bonus | `#A78BFA` | **Latih AI-mu** | 2 tahap: **Latih** 15 contoh acak (jawaban langsung dikoreksi) → **Uji** 15 contoh baru yang **sudah ditebak AI lebih dulu** dari hasil latihan; pemain memeriksa dan membetulkan tebakan itu. 6 hewan (Kucing, Anjing, Burung, Ikan, Kelinci, Bebek), 36 ciri di pool. Jatah latih per hewan sengaja tidak rata (4·4·3·2·1·1, hewannya diacak), jadi AI terlihat lemah di hewan yang jarang dilatih | Lulus jika ≥ 12/15 benar setelah dibetulkan; kunci per ciri dan aturan tebakan AI ada di master sheet | AI dilatih dengan data berlabel lalu dievaluasi manusia; data latih yang berat sebelah membuat tebakannya salah | 150 |
+| 10 | **Cyber Security** (Final Vault) | Bonus | `#F97316` | **Pecahkan Sandi** | 3 tahap: (1) jarak geser **diacak 1–10** tiap buka/reset, geser (maks 10 putaran) sampai terbaca; (2) pilih password paling kuat; (3) **Tangkap pesan jebakan** — nilai 4 pesan masuk (urutan diacak) sebagai Aman atau Jebakan | Kata rahasia selalu `BINUS` (mis. shift 3 → `ELQXV`, shift 7 → `IPUBZ`); password `Kampus@Bekasi#2026`; jebakan = "Undian Kampus" (link `binus-hadiah.xyz`) dan "Admin (nomor tak dikenal)" (minta OTP), aman = "Dosen Algoritma" dan "Perpustakaan" | Sandi, password kuat, dan waspada phishing melindungi data | 200 |
 
 Pesan salah bersifat mengarahkan, bukan memberi jawaban (mis. "Robotmu menabrak tembok di langkah ke-3").
 
@@ -487,8 +490,8 @@ Checklist manual sebelum demo:
 - [ ] Peta: node bernomor + jalur berkelok, foto/logo di sisi jalur tidak menutupi label node (cek di HP kecil 360 px dan besar)
 - [ ] Ruang 1: tekan "Jalankan Robot" → robot bergerak dulu, hasil muncul setelah animasi
 - [ ] Ruang 8: posisi kartu beda tiap reset; kabel muncul saat pasangan dibuat
-- [ ] Ruang 9: setelah 10 latihan tombol jadi "Uji AI"; uji 15 soal; < 11 benar → bisa perbaiki lalu uji ulang
-- [ ] Ruang 10: angka geser mentok di 10; sandi berbeda tiap reset
+- [ ] Ruang 9: setelah 15 latihan tombol jadi "Uji AI"; 15 contoh uji sudah terisi tebakan AI; hewan yang jarang dilatih sering salah ditebak; < 12 benar → betulkan lalu uji ulang
+- [ ] Ruang 10: angka geser mentok di 10; sandi berbeda tiap reset; tahap 3 terbuka setelah password dipilih; salah menilai pesan → banner merah, bisa diperbaiki
 - [ ] Home: carousel foto berputar sendiri, bisa digeser terus (loop), dot indikator ikut
 - [ ] Tutup paksa app → progres tetap
 - [ ] Selesaikan 8 core → bonus terbuka; selesaikan semua → Home menampilkan kartu "Semua ruangan terbuka" → Summary

@@ -59,6 +59,9 @@ firebase-debug.log
 Claude outputs/
 catatan_flutter.txt
 
+# Contoh sertifikat (hasil `flutter test tool/contoh_sertifikat.dart`) — internal, tidak ikut repo
+assets/contoh/
+
 # Cache Gradle & hasil build Android (jangan di-commit)
 .gradle/
 android/build/
