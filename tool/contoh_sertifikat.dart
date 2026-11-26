@@ -17,7 +17,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('buat contoh sertifikat', () async {
-    final rooms = RoomCatalog.all;
+    const rooms = RoomCatalog.all;
     final bytes = await CertificateService.build(
       CertificateData(
         name: 'Nadia Putri',
